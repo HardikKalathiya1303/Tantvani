@@ -1,0 +1,87 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        background: '#FBF4E9',
+        foreground: '#411B1E',
+        primary: '#6B2732',
+        'primary-light': '#7d3040',
+        'primary-fg': '#FBF4E9',
+        secondary: '#C99B4E',
+        'secondary-light': '#d9b574',
+        'secondary-fg': '#411B1E',
+        accent: '#7A4A38',
+        muted: '#EDE3D4',
+        'muted-fg': '#7A5A5E',
+        card: '#FAF6EE',
+        border: '#DDD0BC',
+        input: '#F0E8D8',
+        wine: {
+          light: '#7d3040',
+          DEFAULT: '#6B2732',
+          dark: '#411B1E',
+          darker: '#2A0D10',
+        },
+        gold: {
+          light: '#D9B574',
+          DEFAULT: '#C99B4E',
+          dark: '#A67C35',
+        },
+        cream: {
+          light: '#FDFAF5',
+          DEFAULT: '#FBF4E9',
+          dark: '#EDE3D4',
+          darker: '#DDD0BC',
+        },
+      },
+      fontFamily: {
+        karla: ['Karla', 'sans-serif'],
+        jost: ['Jost', 'sans-serif'],
+        cormorant: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+      },
+      backgroundImage: {
+        'gradient-hero': 'linear-gradient(135deg, #2A0D10 0%, #6B2732 55%, #7A4A38 100%)',
+        'gradient-gold': 'linear-gradient(135deg, #C99B4E 0%, #D9B574 100%)',
+        'gradient-dark': 'linear-gradient(180deg, #2A0D10 0%, #411B1E 100%)',
+        'gradient-subtle': 'linear-gradient(180deg, #FBF4E9 0%, #EDE3D4 100%)',
+        'gradient-wine': 'linear-gradient(135deg, #411B1E 0%, #6B2732 100%)',
+        'gradient-card': 'linear-gradient(180deg, #FAF6EE 0%, #F0E8D8 100%)',
+      },
+      boxShadow: {
+        elegant: '0 4px 24px -8px rgba(65,27,30,0.15)',
+        luxury: '0 20px 60px -16px rgba(65,27,30,0.3)',
+        gold: '0 12px 40px -8px rgba(201,155,78,0.35)',
+        card: '0 2px 16px -4px rgba(65,27,30,0.08)',
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.7s ease-out forwards',
+        'slide-up': 'slideUp 0.7s ease-out forwards',
+        'slide-left': 'slideLeft 0.7s ease-out forwards',
+        'shimmer': 'shimmer 1.8s ease-in-out infinite',
+        'float': 'float 6s ease-in-out infinite',
+        'marquee': 'marquee 35s linear infinite',
+        'scale-in': 'scaleIn 0.4s ease-out forwards',
+        'spin-slow': 'spin 25s linear infinite',
+      },
+      keyframes: {
+        fadeIn: { from: { opacity: '0' }, to: { opacity: '1' } },
+        slideUp: { from: { opacity: '0', transform: 'translateY(32px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+        slideLeft: { from: { opacity: '0', transform: 'translateX(-24px)' }, to: { opacity: '1', transform: 'translateX(0)' } },
+        shimmer: { '0%': { backgroundPosition: '-1200px 0' }, '100%': { backgroundPosition: '1200px 0' } },
+        float: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-12px)' } },
+        marquee: { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(-50%)' } },
+        scaleIn: { from: { opacity: '0', transform: 'scale(0.95)' }, to: { opacity: '1', transform: 'scale(1)' } },
+      },
+      screens: {
+        xs: '390px',
+      },
+      spacing: {
+        '18': '4.5rem',
+        '22': '5.5rem',
+      },
+    },
+  },
+  plugins: [],
+}
