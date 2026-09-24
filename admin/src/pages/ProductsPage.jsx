@@ -607,14 +607,20 @@ function ProductModal({ product, categories, onClose, onSave }) {
 
 export default function ProductsPage() {
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [modalProduct, setModalProduct] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [page, setPage] = useState(1);
   const qc = useQueryClient();
 
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-products', search, page],
-    queryFn: () => api.get('/products', { params: { search, page, limit: 15 } }).then(r => r.data),
+    queryKey: ['admin-products', debouncedSearch, page],
+    queryFn: () => api.get('/products', { params: { search: debouncedSearch, page, limit: 15 } }).then(r => r.data),
   });
 
   const { data: catsData } = useQuery({
