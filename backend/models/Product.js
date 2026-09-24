@@ -57,8 +57,15 @@ productSchema.methods.calculateRating = function () {
     this.numReviews = 0;
   } else {
     this.rating = this.reviews.reduce((acc, r) => acc + r.rating, 0) / this.reviews.length;
-    this.numReviews = this.reviews.length;
   }
 };
+
+productSchema.index({ isActive: 1, createdAt: -1 });
+productSchema.index({ isActive: 1, isFeatured: 1 });
+productSchema.index({ isActive: 1, isNewArrival: 1, createdAt: -1 });
+productSchema.index({ isActive: 1, isBestseller: 1, soldCount: -1 });
+productSchema.index({ category: 1, isActive: 1 });
+productSchema.index({ price: 1, isActive: 1 });
+productSchema.index({ fabric: 1, isActive: 1 });
 
 module.exports = mongoose.model('Product', productSchema);

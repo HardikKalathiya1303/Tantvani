@@ -41,8 +41,21 @@ exports.getProduct = async (req, res) => {
 };
 
 exports.createProduct = async (req, res) => {
+  const body = { ...req.body };
+  if (typeof body.occasion === 'string') {
+    try { body.occasion = JSON.parse(body.occasion); } catch { body.occasion = body.occasion.split(',').map(s => s.trim()).filter(Boolean); }
+  }
+  if (typeof body.color === 'string') {
+    try { body.color = JSON.parse(body.color); } catch { body.color = body.color.split(',').map(s => s.trim()).filter(Boolean); }
+  }
+  if (typeof body.tags === 'string') {
+    try { body.tags = JSON.parse(body.tags); } catch { body.tags = body.tags.split(',').map(s => s.trim()).filter(Boolean); }
+  }
+  if (body.category && typeof body.category === 'object' && body.category._id) {
+    body.category = body.category._id;
+  }
   const images = req.files?.map(f => ({ url: f.path, publicId: f.filename })) || [];
-  const product = await Product.create({ ...req.body, images });
+  const product = await Product.create({ ...body, images });
   res.status(201).json({ success: true, product });
 };
 
@@ -50,16 +63,33 @@ exports.updateProduct = async (req, res) => {
   const product = await Product.findById(req.params.id);
   if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
 
+  const body = { ...req.body };
+  if (typeof body.occasion === 'string') {
+    try { body.occasion = JSON.parse(body.occasion); } catch { body.occasion = body.occasion.split(',').map(s => s.trim()).filter(Boolean); }
+  }
+  if (typeof body.color === 'string') {
+    try { body.color = JSON.parse(body.color); } catch { body.color = body.color.split(',').map(s => s.trim()).filter(Boolean); }
+  }
+  if (typeof body.tags === 'string') {
+    try { body.tags = JSON.parse(body.tags); } catch { body.tags = body.tags.split(',').map(s => s.trim()).filter(Boolean); }
+  }
+  if (body.category && typeof body.category === 'object' && body.category._id) {
+    body.category = body.category._id;
+  }
+
   const newImages = req.files?.map(f => ({ url: f.path, publicId: f.filename })) || [];
-  if (req.body.removeImages) {
-    const toRemove = JSON.parse(req.body.removeImages);
+  if (body.removeImages) {
+    let toRemove = [];
+    try { toRemove = JSON.parse(body.removeImages); } catch { toRemove = [body.removeImages]; }
     for (const pid of toRemove) {
-      await cloudinary.uploader.destroy(pid);
+      if (pid) await cloudinary.uploader.destroy(pid).catch(() => {});
     }
     product.images = product.images.filter(img => !toRemove.includes(img.publicId));
   }
   product.images = [...product.images, ...newImages];
-  Object.assign(product, req.body);
+  delete body.removeImages;
+  delete body.images;
+  Object.assign(product, body);
   await product.save();
   res.json({ success: true, product });
 };

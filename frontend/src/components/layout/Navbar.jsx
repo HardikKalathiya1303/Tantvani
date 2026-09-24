@@ -225,22 +225,25 @@ export default function Navbar() {
                 <IconBtn as={Link} to={user ? '/account' : '/login'} transparent={transparent} label="Account">
                   <User className="w-[18px] h-[18px]" />
                 </IconBtn>
-                <div className="relative">
+                <div>
                   <IconBtn as={Link} to="/cart" transparent={transparent} label="Cart">
-                    <ShoppingBag className="w-[18px] h-[18px]" />
-                    <AnimatePresence>
-                      {cartCount > 0 && (
-                        <motion.span
-                          key={cartCount}
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          exit={{ scale: 0 }}
-                          className="absolute -top-1.5 -right-1.5 bg-[#C99B4E] text-[#411B1E] text-[9px] font-jost font-semibold w-[18px] h-[18px] rounded-full flex items-center justify-center leading-none shadow-sm"
-                        >
-                          {cartCount > 9 ? '9+' : cartCount}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
+                    <span className="relative inline-flex items-center justify-center">
+                      <ShoppingBag className="w-[18px] h-[18px]" />
+                      <AnimatePresence>
+                        {cartCount > 0 && (
+                          <motion.span
+                            key={cartCount}
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0, opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                            className="absolute -top-1.5 -right-2 bg-[#C99B4E] text-[#411B1E] text-[9px] font-jost font-bold w-[16px] h-[16px] rounded-full flex items-center justify-center leading-none shadow-sm pointer-events-none ring-1 ring-[#FDFAF5]/60"
+                          >
+                            {cartCount > 9 ? '9+' : cartCount}
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </span>
                   </IconBtn>
                 </div>
 

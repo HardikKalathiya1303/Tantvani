@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/error');
 
@@ -12,6 +13,7 @@ connectDB();
 
 const app = express();
 
+app.use(compression());
 app.use(helmet());
 const allowedOrigins = [
   process.env.CLIENT_URL,
