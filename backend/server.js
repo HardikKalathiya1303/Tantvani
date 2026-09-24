@@ -13,8 +13,22 @@ connectDB();
 const app = express();
 
 app.use(helmet());
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  process.env.ADMIN_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+].filter(Boolean);
+
 app.use(cors({
-  origin: [process.env.CLIENT_URL, process.env.ADMIN_URL],
+  origin: (origin, cb) => {
+    // allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return cb(null, true);
+    }
+    return cb(new Error(`CORS: origin ${origin} not allowed`));
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
