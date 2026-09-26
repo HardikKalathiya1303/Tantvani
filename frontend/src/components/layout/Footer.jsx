@@ -5,27 +5,6 @@ import { Instagram, Facebook, Youtube, Mail, Phone, MapPin } from 'lucide-react'
 export default function Footer() {
   return (
     <footer className="bg-wine-dark text-cream-light/80">
-      {/* Newsletter */}
-      <div className="border-b border-cream-light/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <p className="font-jost text-xs tracking-[0.3em] uppercase text-secondary mb-3">Join the Heritage Circle</p>
-          <h3 className="font-cormorant text-4xl font-light text-cream-light mb-6">Stay Woven in Culture</h3>
-          <p className="font-karla text-sm text-cream-light/50 mb-8 max-w-md mx-auto">
-            Subscribe for exclusive collections, heritage stories, and artisan spotlights.
-          </p>
-          <form className="flex max-w-md mx-auto gap-3">
-            <input
-              type="email"
-              placeholder="Your email address"
-              className="flex-1 bg-cream-light/10 border border-cream-light/20 px-5 py-3 text-sm font-karla text-cream-light placeholder:text-cream-light/30 focus:outline-none focus:border-secondary transition-colors"
-            />
-            <button type="submit" className="bg-secondary text-wine-dark px-6 py-3 font-jost text-xs tracking-[0.2em] uppercase hover:bg-secondary-light transition-colors duration-200">
-              Subscribe
-            </button>
-          </form>
-        </div>
-      </div>
-
       {/* Main footer */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">

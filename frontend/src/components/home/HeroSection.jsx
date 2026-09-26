@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -11,7 +11,7 @@ const SLIDES = [
     sub: 'Kanjivaram masterpieces crafted by generations of weavers in the heart of Tamil Nadu.',
     cta: { label: 'Explore Kanjivaram', href: '/collections?search=kanjivaram' },
     ctaSecond: { label: 'Our Heritage', href: '/about' },
-    bg: 'from-[#2A0D10] via-[#6B2732] to-[#411B1E]',
+    image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?q=80&w=1600&auto=format&fit=crop',
     accent: '#C99B4E',
   },
   {
@@ -21,7 +21,7 @@ const SLIDES = [
     sub: 'Banarasi brocades that carry the grandeur of Mughal artistry into every bridal trousseau.',
     cta: { label: 'Bridal Sarees', href: '/collections?occasion=wedding' },
     ctaSecond: { label: 'View All', href: '/collections' },
-    bg: 'from-[#1C0A0C] via-[#411B1E] to-[#6B2732]',
+    image: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?q=80&w=1600&auto=format&fit=crop',
     accent: '#D9B574',
   },
   {
@@ -31,7 +31,7 @@ const SLIDES = [
     sub: 'Light as breath, rich in character — Chanderi cottons for the woman who wears grace everyday.',
     cta: { label: 'Chanderi Collection', href: '/collections?search=chanderi' },
     ctaSecond: { label: 'New Arrivals', href: '/collections?newArrival=true' },
-    bg: 'from-[#411B1E] via-[#5C2028] to-[#7A4A38]',
+    image: 'https://images.unsplash.com/photo-1609357605129-26f69add5d6e?q=80&w=1600&auto=format&fit=crop',
     accent: '#C99B4E',
   },
 ];
@@ -48,15 +48,39 @@ const paisleySvg = `
 </svg>
 `;
 
+const PaisleyOverlay = memo(function PaisleyOverlay() {
+  return (
+    <div className="absolute inset-0 opacity-[0.06] pointer-events-none overflow-hidden z-10">
+      {[...Array(12)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute text-cream-light"
+          style={{
+            width: `${60 + (i % 4) * 40}px`,
+            top: `${(i * 13 + 5) % 95}%`,
+            left: `${(i * 17 + 3) % 95}%`,
+            transform: `rotate(${i * 31}deg)`,
+          }}
+          dangerouslySetInnerHTML={{ __html: paisleySvg }}
+        />
+      ))}
+    </div>
+  );
+});
+
 const variants = {
-  enter: (dir) => ({ x: dir > 0 ? '4%' : '-4%', opacity: 0 }),
-  center: { x: 0, opacity: 1 },
-  exit: (dir) => ({ x: dir < 0 ? '4%' : '-4%', opacity: 0 }),
+  enter: (dir) => ({ opacity: 0, scale: 1.05 }),
+  center: { opacity: 1, scale: 1 },
+  exit: (dir) => ({ opacity: 0, scale: 0.98 }),
 };
 
 export default function HeroSection() {
   const [[current, dir], setCurrent] = useState([0, 1]);
   const [paused, setPaused] = useState(false);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+
+  const minSwipeDistance = 40;
 
   const paginate = useCallback((newDir) => {
     setCurrent(([c]) => [(c + newDir + SLIDES.length) % SLIDES.length, newDir]);
@@ -68,15 +92,37 @@ export default function HeroSection() {
     return () => clearInterval(t);
   }, [paginate, paused]);
 
+  const handleTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    if (distance > minSwipeDistance) {
+      paginate(1); // Swipe left → Next slide
+    } else if (distance < -minSwipeDistance) {
+      paginate(-1); // Swipe right → Prev slide
+    }
+  };
+
   const slide = SLIDES[current];
 
   return (
     <section
-      className="relative h-screen min-h-[600px] max-h-[1000px] overflow-hidden"
+      className="relative h-screen min-h-[640px] max-h-[960px] overflow-hidden bg-[#1C0A0C] select-none"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
-      {/* Gradient background */}
+      {/* Luxury Saree Background Image Slider */}
       <AnimatePresence initial={false} custom={dir} mode="sync">
         <motion.div
           key={slide.id + '-bg'}
@@ -85,136 +131,174 @@ export default function HeroSection() {
           initial="enter"
           animate="center"
           exit="exit"
-          transition={{ duration: 0.85, ease: [0.4, 0, 0.2, 1] }}
-          className={`absolute inset-0 bg-gradient-to-br ${slide.bg}`}
-        />
+          transition={{ duration: 1.1, ease: [0.4, 0, 0.2, 1] }}
+          className="absolute inset-0"
+        >
+          <img
+            src={slide.image}
+            alt={slide.heading.replace(/\n/g, ' ')}
+            className="w-full h-full object-cover object-center"
+          />
+        </motion.div>
       </AnimatePresence>
 
-      {/* Paisley pattern overlay */}
-      <div className="absolute inset-0 opacity-[0.05] pointer-events-none overflow-hidden">
-        {[...Array(12)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute text-cream-light"
-            style={{
-              width: `${60 + (i % 4) * 40}px`,
-              top: `${(i * 13 + 5) % 95}%`,
-              left: `${(i * 17 + 3) % 95}%`,
-              transform: `rotate(${i * 31}deg)`,
-              dangerouslySetInnerHTML: undefined,
-            }}
-            dangerouslySetInnerHTML={{ __html: paisleySvg }}
-          />
-        ))}
+      {/* Permanent Fixed Vignette Overlay - Never flashes or resets during slide transitions */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#1C0A0C] via-[#1C0A0C]/75 via-45% to-transparent pointer-events-none z-10" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#1C0A0C]/80 via-transparent to-transparent hidden lg:block pointer-events-none z-10" />
+
+      <PaisleyOverlay />
+
+      {/* --- MOBILE / TABLET LAYOUT (< 1024px / lg) --- */}
+      <div className="lg:hidden relative h-full flex flex-col justify-end z-20 pb-20 sm:pb-24 px-5 sm:px-10 max-w-xl mx-auto w-full">
+        <AnimatePresence initial={false} custom={dir} mode="wait">
+          <motion.div
+            key={slide.id + '-mobile'}
+            custom={dir}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
+            className="w-full flex flex-col items-center text-center space-y-3 sm:space-y-4"
+          >
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#1C0A0C]/80 border border-gold/40 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+              <p className="eyebrow text-gold text-[10px] sm:text-xs tracking-[0.24em] font-medium uppercase">
+                {slide.eyebrow}
+              </p>
+            </div>
+
+            <h1 className="font-cormorant text-3xl sm:text-5xl text-cream-light font-light leading-[1.15] italic drop-shadow-md">
+              {slide.heading.replace(/\n/g, ' ')}
+            </h1>
+
+            <p className="text-cream-light/90 font-karla text-xs sm:text-sm leading-relaxed max-w-md drop-shadow-xs line-clamp-2">
+              {slide.sub}
+            </p>
+
+            {/* 2 Equal-Width Side-by-Side Action Buttons */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full max-w-md pt-1">
+              <Link
+                to={slide.cta.href}
+                className="bg-gold text-wine-dark hover:bg-gold-light text-center py-3 px-2 rounded-xs font-jost text-[11px] sm:text-xs font-semibold tracking-[0.16em] uppercase transition-all shadow-lg active:scale-98"
+              >
+                {slide.cta.label}
+              </Link>
+              <Link
+                to={slide.ctaSecond.href}
+                className="bg-[#1C0A0C]/80 text-gold border border-gold/60 hover:bg-gold/20 text-center py-3 px-2 rounded-xs font-jost text-[11px] sm:text-xs font-semibold tracking-[0.16em] uppercase transition-all active:scale-98 shadow-sm"
+              >
+                {slide.ctaSecond.label}
+              </Link>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Dedicated Slide Navigation Floating Controls (positioned safely above bottom fade) */}
+        <div className="flex items-center justify-between w-full max-w-md mx-auto mt-6 pt-3 border-t border-white/15 text-cream-light">
+          {/* Left: Indicator Dots */}
+          <div className="flex items-center gap-2">
+            {SLIDES.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrent([i, i > current ? 1 : -1])}
+                className={`h-[3px] rounded-full transition-all duration-300 ${i === current ? 'w-7 bg-gold' : 'w-2 bg-white/40'}`}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+
+          {/* Right: Counter & Arrow Controls */}
+          <div className="flex items-center gap-3 font-jost text-xs text-cream-light/90 font-medium">
+            <button
+              onClick={() => paginate(-1)}
+              className="w-8 h-8 rounded-full bg-[#1C0A0C]/80 border border-white/20 hover:border-gold hover:text-gold flex items-center justify-center transition-colors active:scale-95"
+              aria-label="Previous Slide"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="tracking-widest text-[11px]">0{current + 1} / 0{SLIDES.length}</span>
+            <button
+              onClick={() => paginate(1)}
+              className="w-8 h-8 rounded-full bg-[#1C0A0C]/80 border border-white/20 hover:border-gold hover:text-gold flex items-center justify-center transition-colors active:scale-95"
+              aria-label="Next Slide"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Diagonal gold accent */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `linear-gradient(125deg, transparent 60%, ${slide.accent}18 100%)`,
-          transition: 'background 0.8s ease',
-        }}
-      />
-
-      {/* Content */}
-      <div className="relative h-full flex items-center z-10">
-        <div className="w-full max-w-screen-xl mx-auto px-6 sm:px-10 lg:px-20 pt-28 sm:pt-24">
+      {/* --- DESKTOP & LAPTOP LAYOUT (>= 1024px / lg) --- */}
+      <div className="hidden lg:flex relative h-full items-center z-20">
+        <div className="w-full max-w-screen-xl mx-auto px-8 lg:px-16 pt-20">
           <AnimatePresence initial={false} custom={dir} mode="wait">
             <motion.div
-              key={slide.id}
+              key={slide.id + '-desktop'}
               custom={dir}
               variants={variants}
               initial="enter"
               animate="center"
               exit="exit"
               transition={{ duration: 0.75, ease: [0.4, 0, 0.2, 1] }}
-              className="max-w-2xl"
+              className="max-w-2xl text-left"
             >
-              <motion.p
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.55, delay: 0.15 }}
-                className="eyebrow mb-5 sm:mb-7"
-                style={{ color: slide.accent }}
-              >
+              <p className="eyebrow mb-4 text-gold drop-shadow-md text-xs tracking-[0.28em]">
                 {slide.eyebrow}
-              </motion.p>
-
-              <motion.h1
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.22 }}
-                className="heading-xl text-cream-light mb-5 sm:mb-8 whitespace-pre-line"
-                style={{ fontStyle: 'italic' }}
-              >
+              </p>
+              <h1 className="font-cormorant text-5xl lg:text-6xl xl:text-7xl text-cream-light mb-6 whitespace-pre-line drop-shadow-lg font-light leading-[1.08] italic">
                 {slide.heading}
-              </motion.h1>
-
-              <motion.p
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.35 }}
-                className="text-cream-light/65 font-karla text-base sm:text-lg max-w-md leading-relaxed mb-8 sm:mb-12"
-              >
+              </h1>
+              <p className="text-cream-light/85 font-karla text-base lg:text-lg max-w-lg leading-relaxed mb-8 drop-shadow-sm">
                 {slide.sub}
-              </motion.p>
-
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.55, delay: 0.45 }}
-                className="flex flex-wrap gap-4"
-              >
-                <Link to={slide.cta.href} className="btn-gold">
+              </p>
+              <div className="flex items-center gap-4">
+                <Link to={slide.cta.href} className="btn-gold shadow-gold text-center py-3.5 px-9 text-xs font-semibold tracking-[0.2em]">
                   {slide.cta.label}
                 </Link>
-                <Link
-                  to={slide.ctaSecond.href}
-                  className="btn-ghost text-cream-light border-cream-light/40 hover:border-cream-light"
-                >
+                <Link to={slide.ctaSecond.href} className="btn-outline text-cream-light border-cream-light/60 hover:border-cream-light hover:bg-white/10 text-center py-3.5 px-8 text-xs font-semibold tracking-[0.2em]">
                   {slide.ctaSecond.label}
                 </Link>
-              </motion.div>
+              </div>
             </motion.div>
           </AnimatePresence>
         </div>
+
+        {/* Desktop Slide Control Arrows */}
+        <button
+          onClick={() => paginate(-1)}
+          className="absolute left-6 lg:left-8 top-1/2 -translate-y-1/2 z-30 w-11 h-11 lg:w-13 lg:h-13 border border-cream-light/30 hover:border-cream-light text-cream-light/70 hover:text-cream-light flex items-center justify-center transition-all duration-200 bg-[#1C0A0C]/70 hover:bg-[#1C0A0C]"
+          aria-label="Previous"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <button
+          onClick={() => paginate(1)}
+          className="absolute right-6 lg:right-8 top-1/2 -translate-y-1/2 z-30 w-11 h-11 lg:w-13 lg:h-13 border border-cream-light/30 hover:border-cream-light text-cream-light/70 hover:text-cream-light flex items-center justify-center transition-all duration-200 bg-[#1C0A0C]/70 hover:bg-[#1C0A0C]"
+          aria-label="Next"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+
+        {/* Desktop Slide Indicator Dots */}
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex gap-3 z-30">
+          {SLIDES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent([i, i > current ? 1 : -1])}
+              className="h-[4px] transition-all duration-400 rounded-full"
+              style={{
+                width: i === current ? '32px' : '12px',
+                background: i === current ? slide.accent : 'rgba(253,250,245,0.4)',
+              }}
+              aria-label={`Go to slide ${i + 1}`}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* Slide indicators */}
-      <div className="absolute bottom-10 sm:bottom-14 left-1/2 -translate-x-1/2 flex gap-2.5 z-20">
-        {SLIDES.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrent([i, i > current ? 1 : -1])}
-            className="h-[3px] transition-all duration-400 rounded-full"
-            style={{
-              width: i === current ? '28px' : '10px',
-              background: i === current ? slide.accent : 'rgba(253,250,245,0.3)',
-            }}
-            aria-label={`Go to slide ${i + 1}`}
-          />
-        ))}
-      </div>
-
-      {/* Prev / Next arrows */}
-      <button
-        onClick={() => paginate(-1)}
-        className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 border border-cream-light/20 hover:border-cream-light/50 text-cream-light/60 hover:text-cream-light flex items-center justify-center transition-all duration-200 hover:bg-cream-light/5"
-        aria-label="Previous"
-      >
-        <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-      </button>
-      <button
-        onClick={() => paginate(1)}
-        className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 border border-cream-light/20 hover:border-cream-light/50 text-cream-light/60 hover:text-cream-light flex items-center justify-center transition-all duration-200 hover:bg-cream-light/5"
-        aria-label="Next"
-      >
-        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-      </button>
-
-      {/* Bottom fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none z-10" />
+      {/* Bottom Smooth Fade */}
+      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#FDFAF5] to-transparent pointer-events-none z-20" />
     </section>
   );
 }

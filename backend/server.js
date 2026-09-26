@@ -29,7 +29,10 @@ app.use(cors({
       allowedOrigins.includes('*') ||
       allowedOrigins.includes(origin) ||
       /\.vercel\.app$/.test(origin) ||
-      /localhost:\d+$/.test(origin);
+      /localhost:\d+$/.test(origin) ||
+      /127\.0\.0\.1:\d+$/.test(origin) ||
+      /192\.168\.\d+\.\d+:\d+$/.test(origin) ||
+      /10\.\d+\.\d+\.\d+:\d+$/.test(origin);
     if (allowed) return cb(null, true);
     return cb(new Error(`CORS: origin ${origin} not allowed`));
   },
@@ -51,7 +54,14 @@ app.use('/api/admin', require('./routes/admin'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.method} ${req.originalUrl} not found`,
+  });
+});
+
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Tantvani API running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Tantvani API running on http://0.0.0.0:${PORT}`));

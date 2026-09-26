@@ -1,36 +1,26 @@
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../utils/api';
 
 const FALLBACK = [
-  { name: 'Silk Sarees', slug: 'silk' },
-  { name: 'Banarasi', slug: 'banarasi' },
-  { name: 'Kanjivaram', slug: 'kanjivaram' },
-  { name: 'Chanderi', slug: 'chanderi' },
-  { name: 'Cotton', slug: 'cotton' },
-  { name: 'Linen', slug: 'linen' },
+  { name: 'Banarasi Sarees', slug: 'banarasi', image: 'https://images.unsplash.com/photo-1604014237800-1c9102c219da?q=80&w=800&auto=format&fit=crop' },
+  { name: 'Kanjivaram Silk', slug: 'kanjivaram', image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?q=80&w=800&auto=format&fit=crop' },
+  { name: 'Chanderi & Maheshwari', slug: 'chanderi', image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?q=80&w=800&auto=format&fit=crop' },
+  { name: 'Organza & Tussar', slug: 'organza', image: 'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?q=80&w=800&auto=format&fit=crop' },
+  { name: 'Cotton & Linen', slug: 'cotton', image: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?q=80&w=800&auto=format&fit=crop' },
+  { name: 'Heritage Bridal', slug: 'wedding', image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=800&auto=format&fit=crop' },
+  { name: 'Bandhani & Patola', slug: 'bandhani', image: 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?q=80&w=800&auto=format&fit=crop' },
+  { name: 'Tissue & Georgette', slug: 'tissue', image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=800&auto=format&fit=crop' },
+  { name: 'Paithani Masterpiece', slug: 'paithani', image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop' },
+  { name: 'Jamdani Weaves', slug: 'jamdani', image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?q=80&w=800&auto=format&fit=crop' },
+  { name: 'Sambalpuri Handloom', slug: 'sambalpuri', image: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?q=80&w=800&auto=format&fit=crop' },
 ];
-
-const PLACEHOLDER_COLORS = [
-  ['#6B2732', '#411B1E'],
-  ['#5C2028', '#7A4A38'],
-  ['#411B1E', '#6B2732'],
-  ['#7A4A38', '#5C2028'],
-  ['#2A0D10', '#6B2732'],
-  ['#6B3040', '#411B1E'],
-];
-
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.09 } },
-};
-const itemVariants = {
-  hidden: { opacity: 0, y: 28 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.4, 0, 0.2, 1] } },
-};
 
 export default function FeaturedCategories() {
+  const scrollRef = useRef(null);
+
   const { data } = useQuery({
     queryKey: ['categories'],
     queryFn: () => api.get('/categories').then(r => r.data),
@@ -39,88 +29,79 @@ export default function FeaturedCategories() {
   });
 
   const cats = data?.categories?.filter(c => c.isActive) || [];
-  const items = cats.length > 0 ? cats.slice(0, 6) : FALLBACK;
+  // Ensure we show all backend categories plus additional trending items if backend has fewer items
+  const items = cats.length >= 8 ? cats : [...cats, ...FALLBACK.slice(cats.length)];
 
   return (
-    <section className="py-20 sm:py-28 bg-cream">
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-10">
+    <section className="pt-8 sm:pt-12 pb-10 sm:pb-14 bg-cream w-full overflow-hidden relative">
+      <div className="w-full">
+        {/* Title */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-14 sm:mb-20"
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.4 }}
+          className="text-center mb-3 sm:mb-4 px-4"
         >
-          <p className="eyebrow mb-4">Our Collections</p>
-          <h2 className="heading-lg text-wine-dark mb-5">
-            Explore by <em>Tradition</em>
+          <p className="eyebrow mb-1 text-gold">SHOP BY CATEGORY</p>
+          <h2 className="heading-lg text-wine-dark mb-1">
+            Explore Our <em>Categories</em>
           </h2>
           <div className="divider-ornate max-w-xs mx-auto">
-            <span className="eyebrow text-gold px-4">✦</span>
+            <span className="eyebrow text-gold px-2">✦</span>
           </div>
         </motion.div>
 
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-40px' }}
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-5"
+        {/* Horizontal Scroll Row */}
+        <div
+          ref={scrollRef}
+          className="flex items-start gap-5 sm:gap-8 lg:gap-10 overflow-x-auto custom-thin-scrollbar scroll-smooth px-4 sm:px-8 pt-2 pb-4 w-full"
         >
           {items.map((cat, i) => {
+            const fallbackItem = FALLBACK[i % FALLBACK.length];
+            const imgSrc = cat.image || fallbackItem.image;
             const href = cat._id
               ? `/collections?category=${cat._id}`
-              : `/collections?search=${cat.slug}`;
-            const [bg1, bg2] = PLACEHOLDER_COLORS[i % PLACEHOLDER_COLORS.length];
+              : `/collections?search=${cat.slug || fallbackItem.slug}`;
+            const catName = cat.name || fallbackItem.name;
+
             return (
-              <motion.div key={cat._id || cat.slug} variants={itemVariants}>
-                <Link to={href} className="group block">
-                  <div className="relative overflow-hidden aspect-[3/4] mb-4">
-                    {cat.image ? (
+              <div
+                key={cat._id || cat.slug || i}
+                className="flex-shrink-0 flex flex-col items-center text-center group cursor-pointer"
+              >
+                <Link to={href} className="flex flex-col items-center group">
+                  {/* Circle Image Wrapper with Theme Color Border */}
+                  <div className="p-1 sm:p-1.5 rounded-full border-2 border-gold/70 group-hover:border-wine transition-all duration-300 shadow-md group-hover:shadow-xl group-hover:scale-105 bg-white mb-2">
+                    <div className="w-28 h-28 sm:w-36 sm:h-36 lg:w-40 lg:h-40 rounded-full overflow-hidden relative bg-wine-darker/10">
                       <img
-                        src={cat.image}
-                        alt={cat.name}
+                        src={imgSrc}
+                        alt={catName}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = fallbackItem.image;
+                        }}
                       />
-                    ) : (
-                      <div
-                        className="w-full h-full flex flex-col items-center justify-center"
-                        style={{ background: `linear-gradient(145deg, ${bg1}, ${bg2})` }}
-                      >
-                        {/* Paisley SVG */}
-                        <svg className="w-10 h-10 sm:w-14 sm:h-14 text-cream-light/20" viewBox="0 0 100 100" fill="none">
-                          <path d="M50 5 C72 5,88 25,88 50 C88 75,72 95,50 95 C28 95,12 75,12 50 C12 25,28 5,50 5 Z" stroke="currentColor" strokeWidth="1" />
-                          <circle cx="50" cy="50" r="10" stroke="currentColor" strokeWidth="0.8" />
-                          <path d="M35 38 Q50 25,65 38" stroke="currentColor" strokeWidth="0.8" />
-                          <path d="M32 62 Q50 75,68 62" stroke="currentColor" strokeWidth="0.8" />
-                        </svg>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-wine-darker/0 group-hover:bg-wine-darker/20 transition-colors duration-400" />
-                    <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <span className="block w-full text-center btn-primary text-[10px] py-2 px-3">
-                        Explore
-                      </span>
+                      <div className="absolute inset-0 bg-wine-darker/0 group-hover:bg-wine-darker/20 transition-colors duration-300" />
                     </div>
                   </div>
-                  <p className="font-cormorant text-lg sm:text-xl font-medium text-wine-dark text-center tracking-wide group-hover:text-wine transition-colors">
-                    {cat.name}
+
+                  {/* Category Title */}
+                  <p className="font-cormorant text-base sm:text-lg lg:text-xl font-medium text-wine-dark text-center tracking-wide group-hover:text-wine transition-colors whitespace-nowrap px-1">
+                    {catName}
                   </p>
-                  {cat.description && (
-                    <p className="body-sm text-center mt-1 text-xs text-wine-dark/50 line-clamp-2 hidden sm:block">
-                      {cat.description}
-                    </p>
-                  )}
                 </Link>
-              </motion.div>
+              </div>
             );
           })}
-        </motion.div>
+        </div>
 
-        <div className="text-center mt-12 sm:mt-16">
-          <Link to="/collections" className="btn-outline">
-            View All Collections
+        {/* View All Button */}
+        <div className="text-center mt-6 sm:mt-8">
+          <Link to="/collections" className="btn-outline px-8 py-3 text-xs">
+            View All Categories
           </Link>
         </div>
       </div>
