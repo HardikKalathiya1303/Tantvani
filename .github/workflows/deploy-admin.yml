@@ -3,8 +3,7 @@ name: Deploy Admin to Vercel
 on:
   push:
     branches: [main]
-    paths:
-      - 'admin/**'
+  workflow_dispatch:
 
 jobs:
   deploy:
