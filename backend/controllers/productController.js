@@ -10,9 +10,9 @@ exports.getProducts = async (req, res) => {
   if (minPrice || maxPrice) query.price = {};
   if (minPrice) query.price.$gte = Number(minPrice);
   if (maxPrice) query.price.$lte = Number(maxPrice);
-  if (fabric) query.fabric = { $in: fabric.split(',') };
-  if (occasion) query.occasion = { $in: occasion.split(',') };
-  if (color) query.color = { $in: color.split(',') };
+  if (fabric) query.fabric = { $in: fabric.split(',').map(f => new RegExp(f.trim(), 'i')) };
+  if (occasion) query.occasion = { $in: occasion.split(',').map(o => new RegExp(o.trim(), 'i')) };
+  if (color) query.color = { $in: color.split(',').map(c => new RegExp(c.trim(), 'i')) };
   if (featured === 'true') query.isFeatured = true;
   if (newArrival === 'true') query.isNewArrival = true;
   if (bestseller === 'true') query.isBestseller = true;

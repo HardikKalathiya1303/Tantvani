@@ -19,6 +19,7 @@ const ProductCard = memo(function ProductCard({ product }) {
   const hoverImg = !imgError && product.images?.[1]?.url;
   const price = product.discountPrice || product.price;
   const hasDiscount = product.discountPrice && product.discountPrice < product.price;
+  const discountPercent = hasDiscount ? Math.round((1 - product.discountPrice / product.price) * 100) : 0;
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
@@ -43,10 +44,10 @@ const ProductCard = memo(function ProductCard({ product }) {
   };
 
   return (
-    <Link to={`/product/${product.slug}`} className="group block card-product h-full flex flex-col justify-between">
+    <Link to={`/product/${product.slug}`} className="group block card-product h-full flex flex-col justify-between rounded-xs overflow-hidden shadow-xs hover:shadow-luxury transition-all duration-300">
       <div>
-        {/* Image */}
-        <div className="relative overflow-hidden aspect-[3/4] bg-wine-darker/10">
+        {/* Card Image with small rounded-xs border radius */}
+        <div className="relative overflow-hidden aspect-[3/4] bg-wine-darker/10 rounded-t-xs">
           <img
             src={mainImg}
             alt={product.name}
@@ -66,54 +67,59 @@ const ProductCard = memo(function ProductCard({ product }) {
           )}
 
           {/* Badges */}
-          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-col gap-1 z-10">
+          <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
             {product.isNewArrival && (
-              <span className="bg-gold text-wine-dark text-[9px] sm:text-[10px] font-jost font-semibold tracking-[0.14em] uppercase px-2 sm:px-3 py-1 sm:py-1.5 shadow-xs">New</span>
+              <span className="bg-gold text-wine-dark text-[8.5px] font-jost font-semibold tracking-[0.12em] uppercase px-2 py-0.5 shadow-xs">New</span>
             )}
             {product.isBestseller && (
-              <span className="bg-wine text-cream-light text-[9px] sm:text-[10px] font-jost font-semibold tracking-[0.14em] uppercase px-2 sm:px-3 py-1 sm:py-1.5 shadow-xs">Bestseller</span>
+              <span className="bg-wine text-cream-light text-[8.5px] font-jost font-semibold tracking-[0.12em] uppercase px-2 py-0.5 shadow-xs">Bestseller</span>
             )}
             {hasDiscount && (
-              <span className="bg-wine-dark text-cream-light text-[9px] sm:text-[10px] font-jost font-semibold tracking-[0.14em] uppercase px-2 sm:px-3 py-1.5 shadow-xs">
-                -{Math.round((1 - product.discountPrice / product.price) * 100)}%
+              <span className="bg-[#cc0000] text-white text-[8.5px] font-jost font-bold tracking-[0.12em] uppercase px-2 py-0.5 shadow-xs">
+                -{discountPercent}%
               </span>
             )}
           </div>
 
-          {/* Wishlist button */}
+          {/* Wishlist Button */}
           <button
             onClick={handleWishlist}
-            className="absolute top-2 right-2 sm:top-3 sm:right-3 w-8 h-8 sm:w-9 sm:h-9 bg-cream-light/95 hover:bg-cream-light flex items-center justify-center transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 translate-y-0 sm:translate-y-1 sm:group-hover:translate-y-0 z-10 shadow-sm rounded-full"
+            className="absolute top-2 right-2 w-7 h-7 sm:w-8 sm:h-8 bg-cream-light/95 hover:bg-cream-light flex items-center justify-center transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-10 shadow-sm rounded-full"
             aria-label="Add to wishlist"
           >
-            <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${wishlisted ? 'fill-wine text-wine' : 'text-wine-dark/70'}`} />
+            <Heart className={`w-3.5 h-3.5 transition-colors ${wishlisted ? 'fill-wine text-wine' : 'text-wine-dark/70'}`} />
           </button>
 
-          {/* Quick add */}
+          {/* Quick Add Overlay */}
           <div className="absolute bottom-0 left-0 right-0 translate-y-0 sm:translate-y-full sm:group-hover:translate-y-0 transition-transform duration-300 ease-out z-10">
             <button
               onClick={handleAddToCart}
               disabled={adding || product.stock === 0}
-              className="w-full py-2.5 sm:py-3.5 bg-wine text-cream-light text-[10px] sm:text-[11px] font-jost font-semibold tracking-[0.18em] uppercase hover:bg-wine-light transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="w-full py-2 bg-wine text-cream-light text-[10px] sm:text-[11px] font-jost font-semibold tracking-[0.16em] uppercase hover:bg-wine-light transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              <ShoppingBag className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <ShoppingBag className="w-3.5 h-3.5" />
               {product.stock === 0 ? 'Out of Stock' : adding ? 'Added ✓' : 'Add to Bag'}
             </button>
           </div>
         </div>
 
-        {/* Info */}
-        <div className="p-3 sm:p-5">
-          <p className="font-jost text-[9.5px] sm:text-[10.5px] tracking-[0.2em] uppercase text-gold mb-1 truncate">
-            {product.category?.name || product.fabric}
+        {/* Refined Info Section */}
+        <div className="p-2.5 sm:p-3.5 flex flex-col justify-between">
+          {/* Category / Fabric Eyebrow Title (Increased size for visual balance) */}
+          <p className="font-jost text-xs sm:text-[13px] tracking-[0.2em] uppercase text-gold font-bold mb-1 truncate">
+            {product.category?.name || product.fabric || 'Pure Handloom'}
           </p>
-          <h3 className="font-cormorant text-base sm:text-xl md:text-2xl text-wine-dark group-hover:text-wine transition-colors line-clamp-2 leading-tight mb-1.5 font-normal">
+
+          {/* Product Name (Balanced serif font size) */}
+          <h3 className="font-cormorant text-base sm:text-lg lg:text-xl text-wine-dark group-hover:text-wine transition-colors leading-[1.25] font-medium line-clamp-2 min-h-[2.4em] flex items-center mb-1.5">
             {product.name}
           </h3>
+
+          {/* Rating Stars if available */}
           {product.numReviews > 0 && (
-            <div className="flex items-center gap-1 mb-2">
-              <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-gold text-gold" />
-              <span className="text-[11px] sm:text-xs font-karla text-wine-dark/65">
+            <div className="flex items-center gap-1 mb-1.5">
+              <Star className="w-3 h-3 fill-gold text-gold" />
+              <span className="text-[10.5px] font-karla text-wine-dark/65">
                 {product.rating?.toFixed(1)} ({product.numReviews})
               </span>
             </div>
@@ -121,14 +127,23 @@ const ProductCard = memo(function ProductCard({ product }) {
         </div>
       </div>
 
-      <div className="px-3 pb-3 sm:px-5 sm:pb-5">
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="font-cormorant text-lg sm:text-2xl font-semibold text-wine">
-            ₹{price?.toLocaleString('en-IN')}
-          </span>
+      {/* Clean Bottom Price Section */}
+      <div className="px-2.5 pb-2.5 sm:px-3.5 sm:pb-3.5 pt-2 border-t border-cream-darker/30 mt-auto">
+        <div className="flex items-baseline justify-between gap-1.5">
+          <div className="flex items-baseline gap-1.5">
+            <span className="font-cormorant text-lg sm:text-2xl font-bold text-wine">
+              ₹{price?.toLocaleString('en-IN')}
+            </span>
+            {hasDiscount && (
+              <span className="font-karla text-xs sm:text-sm text-wine-dark/40 line-through">
+                ₹{product.price?.toLocaleString('en-IN')}
+              </span>
+            )}
+          </div>
+
           {hasDiscount && (
-            <span className="font-karla text-xs sm:text-sm text-wine-dark/40 line-through">
-              ₹{product.price?.toLocaleString('en-IN')}
+            <span className="text-[9.5px] font-jost font-bold text-[#8C3342] bg-[#8C3342]/10 px-1.5 py-0.5 rounded-xs">
+              {discountPercent}% OFF
             </span>
           )}
         </div>
@@ -150,11 +165,27 @@ function ShimmerCard() {
   );
 }
 
-export default function ProductGrid({ products = [], loading = false, emptyMessage = 'No sarees found' }) {
+export default function ProductGrid({
+  products = [],
+  loading = false,
+  emptyMessage = 'No sarees found',
+  gridCols = 4,
+}) {
+  // Reduced compact grid gaps
+  const gridClasses = {
+    2: 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 gap-2.5 sm:gap-3.5 lg:gap-4',
+    3: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-2.5 sm:gap-3.5 lg:gap-4',
+    4: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3.5 lg:gap-4',
+  };
+
+  const activeGridClass = gridClasses[gridCols] || gridClasses[4];
+
   if (loading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-        {[...Array(8)].map((_, i) => <ShimmerCard key={i} />)}
+      <div className={`grid ${activeGridClass}`}>
+        {[...Array(8)].map((_, i) => (
+          <ShimmerCard key={i} />
+        ))}
       </div>
     );
   }
@@ -173,7 +204,7 @@ export default function ProductGrid({ products = [], loading = false, emptyMessa
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+    <div className={`grid ${activeGridClass}`}>
       {products.map(p => (
         <div key={p._id} className="transition-opacity duration-300">
           <ProductCard product={p} />
