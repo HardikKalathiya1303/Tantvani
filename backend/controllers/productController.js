@@ -1,12 +1,38 @@
 const Product = require('../models/Product');
+const Category = require('../models/Category');
+const mongoose = require('mongoose');
 const { cloudinary } = require('../config/cloudinary');
 
 exports.getProducts = async (req, res) => {
   const { page = 1, limit = 12, category, search, sort, minPrice, maxPrice, fabric, occasion, color, featured, newArrival, bestseller } = req.query;
   const query = { isActive: true };
 
-  if (category) query.category = category;
-  if (search) query.$or = [{ name: { $regex: search, $options: 'i' } }, { description: { $regex: search, $options: 'i' } }, { tags: { $in: [new RegExp(search, 'i')] } }];
+  if (category) {
+    if (mongoose.Types.ObjectId.isValid(category) && category.length === 24) {
+      query.category = category;
+    } else {
+      const catDoc = await Category.findOne({
+        $or: [
+          { slug: category },
+          { name: new RegExp(`^${category}$`, 'i') },
+        ],
+      });
+      if (catDoc) {
+        query.category = catDoc._id;
+      } else {
+        query.category = category;
+      }
+    }
+  }
+  if (search) {
+    const s = search.trim();
+    query.$or = [
+      { name: { $regex: s, $options: 'i' } },
+      { description: { $regex: s, $options: 'i' } },
+      { fabric: { $regex: s, $options: 'i' } },
+      { tags: { $in: [new RegExp(s, 'i')] } },
+    ];
+  }
   if (minPrice || maxPrice) query.price = {};
   if (minPrice) query.price.$gte = Number(minPrice);
   if (maxPrice) query.price.$lte = Number(maxPrice);

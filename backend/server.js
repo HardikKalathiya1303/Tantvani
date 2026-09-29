@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 require('express-async-errors');
 const express = require('express');
 const cors = require('cors');
@@ -43,7 +44,11 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('dev'));
 
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, message: 'Too many requests' });
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 300 : 3000,
+  message: { success: false, message: 'Too many requests, please try again later.' },
+});
 app.use('/api', limiter);
 
 app.use('/api/auth', require('./routes/auth'));
