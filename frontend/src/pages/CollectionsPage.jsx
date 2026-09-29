@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SlidersHorizontal, ChevronDown, Check, Heart, Grid2X2, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductGrid from '../components/home/ProductGrid';
 import FilterSidebar from '../components/collections/FilterSidebar';
+import MobileFilterDrawer from '../components/collections/MobileFilterDrawer';
 import api from '../utils/api';
 
 // Custom 4-Column Grid Icon (4x4 / 4 vertical columns)
@@ -46,14 +47,24 @@ export default function CollectionsPage() {
   const [page, setPage] = useState(1);
   const [gridCols, setGridCols] = useState(4);
   const [showDesktopSidebar, setShowDesktopSidebar] = useState(true);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
 
   const params = Object.fromEntries(searchParams.entries());
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['products', { ...params, page }],
     queryFn: () => api.get('/products', { params: { ...params, page, limit: 12 } }).then(r => r.data),
     keepPreviousData: true,
+    retry: 2,
+    refetchOnWindowFocus: true,
+  });
+
+  const { data: catsData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => api.get('/categories').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   const updateFilter = (key, val) => {
@@ -75,10 +86,10 @@ export default function CollectionsPage() {
 
   return (
     <div className="pb-24 min-h-screen bg-[#FDFBF7] relative text-[#2B1810]">
-      {/* Fixed Vertical Wishlist Tab on the right edge */}
+      {/* Fixed Vertical Wishlist Tab on Desktop ONLY (Hidden on mobile to prevent text overlay) */}
       <Link
         to="/wishlist"
-        className="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-[#8C3342] hover:bg-[#6B2732] text-white py-3 px-2 rounded-l-md shadow-2xl flex flex-col items-center gap-2 group transition-all duration-300"
+        className="hidden lg:flex fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-[#8C3342] hover:bg-[#6B2732] text-white py-3 px-2 rounded-l-md shadow-2xl flex-col items-center gap-2 group transition-all duration-300"
         title="View Wishlist"
       >
         <Heart className="w-4 h-4 fill-white animate-pulse" />
@@ -90,26 +101,26 @@ export default function CollectionsPage() {
         </span>
       </Link>
 
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-8 lg:px-12 pt-8 sm:pt-12">
-        {/* Editorial Hero Banner Header */}
-        <div className="pt-4 pb-8 sm:pb-12 border-b border-[#E8DFC8]/60">
-          <p className="eyebrow text-[#8C3342] text-xs font-semibold tracking-[0.25em] uppercase mb-4">
+      <div className="max-w-screen-2xl mx-auto px-3 sm:px-8 lg:px-12 pt-4 sm:pt-12">
+        {/* Editorial Hero Banner Header (Responsive Padding & Font Scaling) */}
+        <div className="pt-2 sm:pt-4 pb-6 sm:pb-12 border-b border-[#E8DFC8]/60">
+          <p className="eyebrow text-[#8C3342] text-[10px] sm:text-xs font-semibold tracking-[0.22em] uppercase mb-2 sm:mb-4">
             THE MONSOON EDIT · 2025
           </p>
 
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 sm:gap-6">
             <div>
-              <h1 className="font-cormorant text-4xl sm:text-6xl md:text-7xl font-normal leading-[1.1] text-[#2B1810]">
+              <h1 className="font-cormorant text-3xl sm:text-6xl md:text-7xl font-normal leading-[1.1] text-[#2B1810]">
                 Woven for <br />
                 <em className="italic text-[#8C3342] font-serif font-normal">your moments.</em>
               </h1>
-              <p className="font-karla text-sm sm:text-base text-[#2B1810]/65 max-w-xl mt-4 leading-relaxed">
+              <p className="font-karla text-xs sm:text-base text-[#2B1810]/65 max-w-xl mt-3 sm:mt-4 leading-relaxed">
                 A considered collection of handloom sarees, made slowly in India and chosen for the way they make you feel.
               </p>
             </div>
 
             {/* Badges on Right Side of Header */}
-            <div className="flex items-center gap-6 text-xs font-karla text-[#2B1810]/70 shrink-0 pb-1">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-[11px] sm:text-xs font-karla text-[#2B1810]/70 shrink-0 pb-1 mt-2 lg:mt-0">
               <div className="flex items-center gap-1.5 font-medium">
                 <span className="text-[#8C3342]">✦</span> Handloom verified
               </div>
@@ -120,13 +131,14 @@ export default function CollectionsPage() {
           </div>
         </div>
 
-        {/* Toolbar Row */}
-        <div className="py-5 flex items-center justify-between gap-4 border-b border-[#E8DFC8]/40 mb-8">
-          {/* Left: Filter Toggle Button + Piece Count right next to it */}
-          <div className="flex items-center gap-3 sm:gap-4">
+        {/* Toolbar Row (Fully Responsive on Mobile & Desktop) */}
+        <div className="py-4 sm:py-5 flex items-center justify-between gap-2 sm:gap-4 border-b border-[#E8DFC8]/40 mb-6 sm:mb-8">
+          {/* Left Controls: Filter Button + Piece Count */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Desktop Filter Toggle Button */}
             <button
               onClick={() => setShowDesktopSidebar(s => !s)}
-              className={`flex items-center gap-2.5 px-4 py-2 rounded-full border text-xs sm:text-sm font-jost tracking-wider font-semibold transition-all duration-300 cursor-pointer shadow-xs ${
+              className={`hidden lg:flex items-center gap-2.5 px-4 py-2 rounded-full border text-xs sm:text-sm font-jost tracking-wider font-semibold transition-all duration-300 cursor-pointer shadow-xs ${
                 showDesktopSidebar
                   ? 'bg-[#8C3342] text-white border-[#8C3342] hover:bg-[#6B2732]'
                   : 'bg-white text-[#2B1810] border-[#E8DFC8] hover:border-[#8C3342] hover:text-[#8C3342]'
@@ -149,27 +161,41 @@ export default function CollectionsPage() {
               )}
             </button>
 
-            {/* Piece Count on the Right of Filter Button */}
+            {/* Mobile Filter Drawer Button */}
+            <button
+              onClick={() => setMobileFiltersOpen(true)}
+              className="lg:hidden flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border text-xs font-jost tracking-wider font-semibold bg-[#8C3342] text-white border-[#8C3342] active:scale-95 transition-transform"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Filter</span>
+              {activeFiltersCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-white text-[#8C3342] text-[10px] font-bold flex items-center justify-center ml-0.5">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+
+            {/* Piece Count */}
             <div className="font-karla text-xs sm:text-sm text-[#2B1810]/70 pl-2 sm:pl-3 border-l border-[#E8DFC8]">
               <span className="font-semibold text-[#2B1810]">{data?.total || data?.products?.length || 0}</span> pieces
             </div>
           </div>
 
-          {/* Right Controls: Sort Dropdown & Grid Switchers */}
-          <div className="flex items-center gap-4 sm:gap-6">
+          {/* Right Controls: Sort Dropdown & Desktop Grid Switchers */}
+          <div className="flex items-center gap-3 sm:gap-6">
             {/* Sort Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setSortOpen(s => !s)}
-                className="flex items-center gap-1.5 font-jost text-xs sm:text-sm tracking-wider font-medium text-[#2B1810] hover:text-[#8C3342] transition-colors cursor-pointer"
+                className="flex items-center gap-1 sm:gap-1.5 font-jost text-xs sm:text-sm tracking-wider font-medium text-[#2B1810] hover:text-[#8C3342] transition-colors cursor-pointer"
               >
-                <span className="text-[#2B1810]/50 font-normal">Sort by</span>
+                <span className="hidden sm:inline text-[#2B1810]/50 font-normal">Sort by</span>
                 <span className="font-semibold text-[#8C3342]">{currentSortObj?.label}</span>
                 <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {sortOpen && (
-                <div className="absolute right-0 mt-2 w-52 bg-white border border-[#E8DFC8] rounded-xl shadow-xl py-2 z-50 animate-in fade-in duration-150">
+                <div className="absolute right-0 mt-2 w-48 sm:w-52 bg-white border border-[#E8DFC8] rounded-xl shadow-xl py-2 z-50 animate-in fade-in duration-150">
                   <div className="px-3 py-1.5 border-b border-gray-100 text-[10px] font-jost uppercase tracking-widest text-gray-400 font-bold">
                     Sort By
                   </div>
@@ -190,9 +216,8 @@ export default function CollectionsPage() {
               )}
             </div>
 
-            {/* Grid Layout Switcher */}
+            {/* Desktop Grid Layout Switcher */}
             <div className="hidden sm:flex items-center gap-1 border-l border-[#E8DFC8] pl-4">
-              {/* 4-Column Grid Icon (4x4) */}
               <button
                 onClick={() => setGridCols(4)}
                 title="4 Columns Grid"
@@ -203,7 +228,6 @@ export default function CollectionsPage() {
                 <Grid4Icon className="w-4 h-4" />
               </button>
 
-              {/* 3-Column Grid Icon (3x3) */}
               <button
                 onClick={() => setGridCols(3)}
                 title="3 Columns Grid"
@@ -214,7 +238,6 @@ export default function CollectionsPage() {
                 <Grid3Icon className="w-4 h-4" />
               </button>
 
-              {/* 2-Column Grid Icon (Perfect as-is) */}
               <button
                 onClick={() => setGridCols(2)}
                 title="2 Columns Grid"
@@ -230,7 +253,7 @@ export default function CollectionsPage() {
 
         {/* Main Content Area: Left Filter Sidebar + Right Product Grid */}
         <div className="flex gap-8 lg:gap-12 items-start">
-          {/* Collapsible Left Sidebar */}
+          {/* Collapsible Left Sidebar on Desktop */}
           <AnimatePresence initial={false}>
             {showDesktopSidebar && (
               <motion.div
@@ -247,19 +270,20 @@ export default function CollectionsPage() {
             )}
           </AnimatePresence>
 
-          {/* Right Product Grid */}
+          {/* Product Grid (Responsive 2 Columns on Mobile) */}
           <div className="flex-1 min-w-0">
             <ProductGrid
               products={data?.products || []}
               loading={isLoading}
+              isError={isError}
+              onRetry={() => refetch()}
               emptyMessage="No sarees match your selected criteria"
               gridCols={gridCols}
-              isPLP={true}
             />
 
             {/* Pagination */}
             {data?.pages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-14">
+              <div className="flex justify-center items-center gap-2 mt-10 sm:mt-14">
                 {[...Array(data.pages)].map((_, i) => (
                   <button
                     key={i}
@@ -267,7 +291,7 @@ export default function CollectionsPage() {
                       setPage(i + 1);
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
-                    className={`w-10 h-10 rounded-full font-jost text-xs font-semibold transition-all duration-200 ${
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full font-jost text-xs font-semibold transition-all duration-200 ${
                       page === i + 1
                         ? 'bg-[#8C3342] text-white shadow-md'
                         : 'border border-[#E8DFC8] hover:border-[#8C3342] text-[#2B1810]/60 hover:text-[#8C3342] bg-white'
@@ -281,6 +305,16 @@ export default function CollectionsPage() {
           </div>
         </div>
       </div>
+
+      {/* Slide-over Mobile Filter Drawer */}
+      <MobileFilterDrawer
+        mobileFiltersOpen={mobileFiltersOpen}
+        setMobileFiltersOpen={setMobileFiltersOpen}
+        params={params}
+        updateFilter={updateFilter}
+        catsData={catsData}
+        clearAll={clearAll}
+      />
     </div>
   );
 }

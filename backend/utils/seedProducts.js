@@ -2,19 +2,29 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const slugify = require('slugify');
 
-async function seedDatabase() {
-  const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/tantvani';
-  await mongoose.connect(mongoUri);
-  console.log('Connected to MongoDB for Seeding...');
+async function seedDatabase(force = false) {
+  if (mongoose.connection.readyState === 0) {
+    const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/tantvani';
+    await mongoose.connect(mongoUri);
+    console.log('Connected to MongoDB for Seeding...');
+  }
 
   const User = require('../models/User');
   const Category = require('../models/Category');
   const Product = require('../models/Product');
 
-  // Clear existing products & categories to re-seed cleanly
-  await Product.deleteMany({});
-  await Category.deleteMany({});
-  console.log('🧹 Cleared existing Products and Categories');
+  const existingCount = await Product.countDocuments();
+  if (!force && existingCount > 0) {
+    console.log(`ℹ️ Database already has ${existingCount} products. Skipping seed.`);
+    return;
+  }
+
+  if (force) {
+    // Clear existing products & categories to re-seed cleanly
+    await Product.deleteMany({});
+    await Category.deleteMany({});
+    console.log('🧹 Cleared existing Products and Categories');
+  }
 
   // 1. Ensure Admin User
   let admin = await User.findOne({ email: 'admin@tantvani.com' });
@@ -1183,10 +1193,15 @@ async function seedDatabase() {
   }
 
   console.log('\n🎉 Successfully seeded 40 realistic luxury saree products into database!');
-  process.exit(0);
 }
 
-seedDatabase().catch((err) => {
-  console.error('❌ Seeding failed:', err);
-  process.exit(1);
-});
+module.exports = seedDatabase;
+
+if (require.main === module) {
+  seedDatabase(true)
+    .then(() => process.exit(0))
+    .catch((err) => {
+      console.error('❌ Seeding failed:', err);
+      process.exit(1);
+    });
+}
