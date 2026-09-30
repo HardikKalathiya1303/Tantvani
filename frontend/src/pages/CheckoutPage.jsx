@@ -8,6 +8,17 @@ import { useAuthStore } from '../store/useAuthStore';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
+const loadRazorpayScript = () =>
+  new Promise(resolve => {
+    if (document.getElementById('razorpay-script')) return resolve(true);
+    const script = document.createElement('script');
+    script.id = 'razorpay-script';
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+
 const STEPS = ['Shipping', 'Payment', 'Confirmed'];
 
 const PAYMENT_OPTIONS = [
@@ -34,11 +45,13 @@ export default function CheckoutPage() {
   const tax = Math.round(subtotal * 0.05);
   const total = subtotal + shipping + tax;
 
-  const orderMutation = useMutation({
+  const [placing, setPlacing] = useState(false);
+
+  const codMutation = useMutation({
     mutationFn: () => api.post('/orders', {
       orderItems: items.map(i => ({ product: i._id, quantity: i.quantity })),
       shippingAddress: address,
-      paymentMethod,
+      paymentMethod: 'cod',
     }),
     onSuccess: ({ data }) => {
       setOrderId(data.order._id);
@@ -47,6 +60,62 @@ export default function CheckoutPage() {
     },
     onError: err => toast.error(err.response?.data?.message || 'Could not place order. Please try again.'),
   });
+
+  const handlePlaceOrder = async () => {
+    if (paymentMethod === 'cod') {
+      codMutation.mutate();
+      return;
+    }
+
+    setPlacing(true);
+    try {
+      const loaded = await loadRazorpayScript();
+      if (!loaded) { toast.error('Could not load payment gateway. Please try again.'); return; }
+
+      const { data } = await api.post('/orders/create-razorpay-order', { amount: total });
+
+      const options = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency,
+        name: 'Tantvani',
+        description: 'Luxury Saree Purchase',
+        order_id: data.razorpayOrderId,
+        prefill: { name: address.name, contact: address.phone, email: user?.email || '' },
+        theme: { color: '#6B1E2E' },
+        handler: async (response) => {
+          try {
+            const orderPayload = {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              orderItems: items.map(i => ({ product: i._id, quantity: i.quantity })),
+              shippingAddress: address,
+              paymentMethod,
+              itemsPrice: subtotal,
+              shippingPrice: shipping,
+              taxPrice: tax,
+              totalPrice: total,
+            };
+            const { data: orderData } = await api.post('/orders/verify-payment', orderPayload);
+            setOrderId(orderData.order._id);
+            clearCart();
+            setStep(2);
+          } catch {
+            toast.error('Payment verification failed. Contact support with your payment ID.');
+          }
+        },
+        modal: { ondismiss: () => toast.error('Payment cancelled.') },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setPlacing(false);
+    }
+  };
 
   const af = key => e => setAddress(a => ({ ...a, [key]: e.target.value }));
 
@@ -154,11 +223,15 @@ export default function CheckoutPage() {
                 <div className="flex gap-4 mt-8">
                   <button onClick={() => setStep(0)} className="btn-outline">Back</button>
                   <button
-                    onClick={() => orderMutation.mutate()}
-                    disabled={orderMutation.isPending}
+                    onClick={handlePlaceOrder}
+                    disabled={placing || codMutation.isPending}
                     className="btn-primary flex-1 disabled:opacity-60"
                   >
-                    {orderMutation.isPending ? 'Placing…' : `Place Order — ₹${total.toLocaleString('en-IN')}`}
+                    {placing || codMutation.isPending
+                      ? 'Processing…'
+                      : paymentMethod === 'cod'
+                        ? `Place Order — ₹${total.toLocaleString('en-IN')}`
+                        : `Pay ₹${total.toLocaleString('en-IN')}`}
                   </button>
                 </div>
               </motion.div>

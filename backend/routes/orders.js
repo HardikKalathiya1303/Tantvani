@@ -4,9 +4,12 @@ const { protect, adminOnly } = require('../middleware/auth');
 const {
   createOrder, getMyOrders, getOrder, updateOrderToPaid,
   getAllOrders, updateOrderStatus, getDashboardStats,
+  createRazorpayOrder, verifyAndCreateOrder,
 } = require('../controllers/orderController');
 
 router.post('/', protect, createOrder);
+router.post('/create-razorpay-order', protect, createRazorpayOrder);
+router.post('/verify-payment', protect, verifyAndCreateOrder);
 router.get('/my-orders', protect, getMyOrders);
 router.get('/admin/all', protect, adminOnly, getAllOrders);
 router.get('/admin/stats', protect, adminOnly, getDashboardStats);
