@@ -365,6 +365,87 @@ export default function CheckoutPage() {
     toast.success('Coupon removed');
   };
 
+  const [placing, setPlacing] = useState(false);
+
+  const handlePlaceOrder = async () => {
+    if (paymentMethod === 'cod') {
+      orderMutation.mutate();
+      return;
+    }
+
+    setPlacing(true);
+    try {
+      const loaded = await loadRazorpayScript();
+      if (!loaded) {
+        toast.error('Could not load payment gateway. Please try again.');
+        setPlacing(false);
+        return;
+      }
+
+      let rzpData;
+      try {
+        const res = await api.post('/orders/create-razorpay-order', { amount: grandTotal });
+        rzpData = res.data;
+      } catch (err) {
+        toast.error('Payment initiation failed: ' + (err.response?.data?.message || err.message));
+        setPlacing(false);
+        return;
+      }
+
+      const activeShippingAddress = getActiveShippingAddress();
+      const options = {
+        key: rzpData.keyId,
+        amount: rzpData.amount,
+        currency: rzpData.currency,
+        name: 'Tantvani',
+        description: 'Luxury Saree Purchase',
+        order_id: rzpData.razorpayOrderId,
+        prefill: {
+          name: activeShippingAddress.name,
+          contact: activeShippingAddress.phone,
+          email: activeShippingAddress.email || user?.email || '',
+        },
+        theme: { color: '#18181b' },
+        handler: async (response) => {
+          try {
+            const orderPayload = {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              orderItems: items.map(i => ({
+                product: i._id,
+                name: i.name,
+                image: i.images?.[0]?.url || '',
+                price: i.discountPrice || i.price,
+                quantity: i.quantity,
+              })),
+              shippingAddress: activeShippingAddress,
+              paymentMethod,
+              itemsPrice: subtotal,
+              shippingPrice: shipping,
+              taxPrice: tax,
+              totalPrice: grandTotal,
+            };
+            const { data: orderData } = await api.post('/orders/verify-payment', orderPayload);
+            setOrderId(orderData.order._id);
+            clearCart();
+            setStep(2);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } catch {
+            toast.error('Payment verification failed. Contact support with your payment ID.');
+          }
+        },
+        modal: { ondismiss: () => { toast.error('Payment cancelled.'); setPlacing(false); } },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
+      setPlacing(false);
+    }
+  };
+
   if (items.length === 0 && step !== 2) {
     return (
       <div className="min-h-screen bg-white pt-24 sm:pt-28 pb-20 flex items-center justify-center">
@@ -924,18 +1005,23 @@ export default function CheckoutPage() {
                   </button>
 
                   <button
-                    onClick={() => orderMutation.mutate()}
-                    disabled={orderMutation.isPending}
+                    onClick={handlePlaceOrder}
+                    disabled={orderMutation.isPending || placing}
                     className="flex-1 px-8 py-4 bg-black hover:bg-neutral-800 text-white font-jost text-xs sm:text-sm font-bold uppercase tracking-widest rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-60 flex items-center justify-center gap-2"
                   >
-                    {orderMutation.isPending ? (
+                    {orderMutation.isPending || placing ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         Processing Your Order…
                       </>
+                    ) : paymentMethod === 'cod' ? (
+                      <>
+                        Place Order — ₹{grandTotal.toLocaleString('en-IN')}
+                        <ArrowRight className="w-4 h-4" />
+                      </>
                     ) : (
                       <>
-                        Place Order & Pay ₹{grandTotal.toLocaleString('en-IN')}
+                        Pay ₹{grandTotal.toLocaleString('en-IN')}
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
