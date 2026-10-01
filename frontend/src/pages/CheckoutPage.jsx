@@ -402,7 +402,6 @@ export default function CheckoutPage() {
         order_id: rzpData.razorpayOrderId,
         prefill: {
           name: activeShippingAddress.name,
-          contact: activeShippingAddress.phone,
           email: activeShippingAddress.email || user?.email || '',
         },
         theme: { color: '#18181b' },
