@@ -75,7 +75,7 @@ app.use('/api', (req, res) => {
 
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 6666;
+const PORT = process.env.PORT || 5055;
 
 const startServer = async () => {
   try {
