@@ -60,6 +60,7 @@ export default function App() {
             <Route path="/" element={<PageTransition><HomePage /></PageTransition>} />
             <Route path="/collections" element={<PageTransition><CollectionsPage /></PageTransition>} />
             <Route path="/product/:slug" element={<PageTransition><ProductDetailPage /></PageTransition>} />
+            <Route path="/products/:slug" element={<PageTransition><ProductDetailPage /></PageTransition>} />
             <Route path="/cart" element={<PageTransition><CartPage /></PageTransition>} />
             <Route path="/checkout" element={<ProtectedRoute><PageTransition><CheckoutPage /></PageTransition></ProtectedRoute>} />
             <Route path="/login" element={<PageTransition><LoginPage /></PageTransition>} />

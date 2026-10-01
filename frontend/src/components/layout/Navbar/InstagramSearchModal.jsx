@@ -114,7 +114,8 @@ export default function InstagramSearchModal({ isOpen, onClose }) {
 
   const handleProductClick = (product) => {
     onClose();
-    navigate(`/products/${product._id}`);
+    const targetSlug = product.slug || product._id;
+    navigate(`/product/${targetSlug}`);
   };
 
   const handleGoToSavedWishlist = () => {
