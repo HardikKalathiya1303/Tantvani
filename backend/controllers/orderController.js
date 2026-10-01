@@ -1,5 +1,12 @@
+const crypto = require('crypto');
+const Razorpay = require('razorpay');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || 'placeholder_secret',
+});
 
 exports.createOrder = async (req, res) => {
   const { orderItems, shippingAddress, paymentMethod } = req.body;
@@ -89,6 +96,77 @@ exports.updateOrderStatus = async (req, res) => {
   }
   await order.save();
   res.json({ success: true, order });
+};
+
+exports.createRazorpayOrder = async (req, res) => {
+  const { amount } = req.body;
+  if (!amount || amount < 1) return res.status(400).json({ success: false, message: 'Invalid amount' });
+
+  const razorpayOrder = await razorpay.orders.create({
+    amount: Math.round(amount * 100), // paise
+    currency: 'INR',
+    receipt: `tantvani_${Date.now()}`,
+  });
+
+  res.json({
+    success: true,
+    razorpayOrderId: razorpayOrder.id,
+    amount: razorpayOrder.amount,
+    currency: razorpayOrder.currency,
+    keyId: process.env.RAZORPAY_KEY_ID,
+  });
+};
+
+exports.verifyAndCreateOrder = async (req, res) => {
+  const {
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
+    orderItems,
+    shippingAddress,
+    paymentMethod,
+    itemsPrice,
+    shippingPrice,
+    taxPrice,
+    totalPrice,
+  } = req.body;
+
+  const sign = `${razorpay_order_id}|${razorpay_payment_id}`;
+  const expectedSign = crypto
+    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'placeholder_secret')
+    .update(sign)
+    .digest('hex');
+
+  if (expectedSign !== razorpay_signature) {
+    return res.status(400).json({ success: false, message: 'Payment verification failed' });
+  }
+
+  const order = await Order.create({
+    user: req.user._id,
+    orderItems,
+    shippingAddress,
+    paymentMethod,
+    itemsPrice,
+    shippingPrice,
+    taxPrice,
+    totalPrice,
+    isPaid: true,
+    paidAt: Date.now(),
+    orderStatus: 'confirmed',
+    paymentResult: {
+      id: razorpay_payment_id,
+      status: 'completed',
+      updateTime: new Date().toISOString(),
+    },
+  });
+
+  for (const item of orderItems) {
+    await Product.findByIdAndUpdate(item.product, {
+      $inc: { stock: -item.quantity, soldCount: item.quantity },
+    });
+  }
+
+  res.status(201).json({ success: true, order });
 };
 
 exports.getDashboardStats = async (req, res) => {

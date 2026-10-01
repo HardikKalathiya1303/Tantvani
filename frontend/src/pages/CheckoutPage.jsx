@@ -13,6 +13,17 @@ import { useAuthStore } from '../store/useAuthStore';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
+const loadRazorpayScript = () =>
+  new Promise(resolve => {
+    if (document.getElementById('razorpay-script')) return resolve(true);
+    const script = document.createElement('script');
+    script.id = 'razorpay-script';
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+
 const STEPS = ['Shipping', 'Payment', 'Confirmed'];
 
 const PAYMENT_OPTIONS = [
@@ -159,37 +170,6 @@ export default function CheckoutPage() {
     },
   });
 
-  // Order Placement Mutation
-  const orderMutation = useMutation({
-    mutationFn: () => {
-      const activeShippingAddress = getActiveShippingAddress();
-      return api.post('/orders', {
-        orderItems: items.map(i => ({
-          product: i._id,
-          name: i.name,
-          image: i.images?.[0]?.url || '',
-          price: i.discountPrice || i.price,
-          quantity: i.quantity,
-        })),
-        shippingAddress: activeShippingAddress,
-        paymentMethod,
-        itemsPrice: subtotal,
-        shippingPrice: shipping,
-        taxPrice: tax,
-        totalPrice: grandTotal,
-      });
-    },
-    onSuccess: ({ data }) => {
-      setOrderId(data.order._id);
-      clearCart();
-      setStep(2);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    },
-    onError: (err) => {
-      toast.error(err.response?.data?.message || 'Could not place order. Please try again.');
-    },
-  });
-
   const getActiveShippingAddress = () => {
     if (!isAddingNew && selectedAddressId) {
       const found = savedAddresses.find(a => a._id === selectedAddressId);
@@ -225,6 +205,37 @@ export default function CheckoutPage() {
       addressType: addressForm.addressType || 'Home',
     };
   };
+
+  // Order Placement Mutation
+  const orderMutation = useMutation({
+    mutationFn: () => {
+      const activeShippingAddress = getActiveShippingAddress();
+      return api.post('/orders', {
+        orderItems: items.map(i => ({
+          product: i._id,
+          name: i.name,
+          image: i.images?.[0]?.url || '',
+          price: i.discountPrice || i.price,
+          quantity: i.quantity,
+        })),
+        shippingAddress: activeShippingAddress,
+        paymentMethod,
+        itemsPrice: subtotal,
+        shippingPrice: shipping,
+        taxPrice: tax,
+        totalPrice: grandTotal,
+      });
+    },
+    onSuccess: ({ data }) => {
+      setOrderId(data.order._id);
+      clearCart();
+      setStep(2);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Could not place order. Please try again.');
+    },
+  });
 
   const handleFormChange = (key) => (e) => {
     setAddressForm(prev => ({ ...prev, [key]: e.target.value }));
