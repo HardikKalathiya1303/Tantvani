@@ -59,7 +59,7 @@ export default function WishlistPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white pt-2 sm:pt-4 lg:pt-16 pb-20">
+    <div className="min-h-screen bg-white pt-3 sm:pt-5 pb-20">
       <div className="max-w-screen-xl mx-auto px-3.5 sm:px-6 lg:px-10">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2.5 text-[11px] sm:text-xs text-neutral-500 font-jost uppercase tracking-wider">

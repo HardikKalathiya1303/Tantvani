@@ -68,7 +68,7 @@ export default function ProductDetailPage() {
   if (isLoading)
     return (
       <div className="pb-24 bg-white min-h-screen">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-10 pt-20 sm:pt-24">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-10 pt-3 sm:pt-5">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-14">
             <div className="space-y-4">
               <div className="aspect-portrait shimmer rounded-2xl" />
@@ -94,7 +94,7 @@ export default function ProductDetailPage() {
 
   if (!data?.product)
     return (
-      <div className="pb-24 min-h-screen flex items-center justify-center bg-white pt-20 sm:pt-24">
+      <div className="pb-24 min-h-screen flex items-center justify-center bg-white pt-4 sm:pt-6">
         <div className="text-center px-4 max-w-md">
           <p className="font-cormorant text-4xl text-wine-dark mb-3 font-light">
             Saree Not Found
@@ -124,7 +124,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="pb-24 min-h-screen bg-white">
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-10 pt-20 sm:pt-24">
+      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-10 pt-3 sm:pt-5">
         {/* Breadcrumb Navigation */}
         <nav className="flex items-center gap-2 mb-4 sm:mb-5 flex-wrap text-xs">
           <Link
