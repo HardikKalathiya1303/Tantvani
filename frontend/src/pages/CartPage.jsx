@@ -82,23 +82,23 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-white pt-24 sm:pt-28 pb-20 flex items-center justify-center">
-        <div className="text-center max-w-md px-4 space-y-6">
-          <div className="w-24 h-24 rounded-full bg-neutral-100 border border-neutral-200 mx-auto flex items-center justify-center text-neutral-400 shadow-xs">
-            <ShoppingBag className="w-10 h-10 text-neutral-500" />
+      <div className="min-h-[calc(100vh-160px)] bg-white flex flex-col items-center justify-center px-4 py-6 pb-20 text-center">
+        <div className="max-w-md w-full px-4 space-y-5">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-neutral-100 border border-neutral-200 mx-auto flex items-center justify-center text-neutral-400 shadow-xs">
+            <ShoppingBag className="w-9 h-9 sm:w-10 sm:h-10 text-neutral-500" />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <h1 className="font-jost text-2xl sm:text-3xl font-bold text-black tracking-tight">
               Your Shopping Bag is Empty
             </h1>
-            <p className="font-karla text-sm sm:text-base text-neutral-500 max-w-sm mx-auto">
+            <p className="font-karla text-xs sm:text-sm text-neutral-500 max-w-sm mx-auto">
               Explore our handcrafted heritage weaves and add exquisite heirloom sarees to your bag.
             </p>
           </div>
-          <div className="pt-2">
+          <div className="pt-1">
             <Link
               to="/collections"
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-black hover:bg-neutral-800 text-white font-jost text-xs sm:text-sm font-bold uppercase tracking-widest rounded-xl transition-all shadow-md hover:shadow-lg"
+              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-black hover:bg-neutral-800 text-white font-jost text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md hover:shadow-lg"
             >
               Explore Saree Collections <ArrowRight className="w-4 h-4" />
             </Link>
@@ -115,10 +115,10 @@ export default function CartPage() {
   const totalItemCount = items.reduce((a, b) => a + b.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-white pt-2 sm:pt-4 lg:pt-16 pb-20">
+    <div className="min-h-[calc(100vh-160px)] bg-[#FAF8F5] pt-1 sm:pt-4 lg:pt-8 pb-24">
       <div className="max-w-screen-xl mx-auto px-3.5 sm:px-6 lg:px-10">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2.5 text-[11px] sm:text-xs text-neutral-500 font-jost uppercase tracking-wider">
+        <nav className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 text-[11px] sm:text-xs text-neutral-500 font-jost uppercase tracking-wider">
           <Link to="/" className="hover:text-black transition-colors">
             Home
           </Link>
