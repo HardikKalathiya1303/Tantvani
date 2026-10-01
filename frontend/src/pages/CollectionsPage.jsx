@@ -112,7 +112,7 @@ export default function CollectionsPage() {
             <div>
               <h1 className="font-cormorant text-3xl sm:text-6xl md:text-7xl font-normal leading-[1.1] text-[#2B1810]">
                 Woven for <br />
-                <em className="italic text-[#8C3342] font-serif font-normal">your moments.</em>
+                <em className="italic text-[#8C3342] font-serif font-normal">your moments...</em>
               </h1>
               <p className="font-karla text-xs sm:text-base text-[#2B1810]/65 max-w-xl mt-3 sm:mt-4 leading-relaxed">
                 A considered collection of handloom sarees, made slowly in India and chosen for the way they make you feel.
