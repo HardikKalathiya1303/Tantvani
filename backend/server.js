@@ -38,6 +38,7 @@ app.use(cors({
       allowedOrigins.includes(origin) ||
       /\.vercel\.app$/.test(origin) ||
       /\.netlify\.app$/.test(origin) ||
+      /\.pages\.dev$/.test(origin) ||
       /localhost:\d+$/.test(origin) ||
       /127\.0\.0\.1:\d+$/.test(origin) ||
       /192\.168\.\d+\.\d+:\d+$/.test(origin) ||
