@@ -19,9 +19,9 @@ export default function MobileDrawer({ mobileOpen, setMobileOpen, cats, user, lo
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-            className="fixed top-0 right-0 bottom-0 z-[65] w-[85vw] max-w-sm bg-[#FDFAF5] flex flex-col shadow-luxury overflow-hidden border-l border-[#DDD0BC]/60"
+            className="fixed top-0 right-0 bottom-0 z-[65] w-[85vw] max-w-sm bg-white flex flex-col shadow-luxury overflow-hidden border-l border-neutral-200"
           >
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[#DDD0BC]/40">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-neutral-200">
               <span className="font-cormorant text-2xl tracking-[0.35em] text-[#6B2732]">Tantvani</span>
               <button
                 onClick={() => setMobileOpen(false)}

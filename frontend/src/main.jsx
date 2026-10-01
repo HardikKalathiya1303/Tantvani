@@ -6,6 +6,11 @@ import { Toaster } from 'react-hot-toast'
 import App from './App.jsx'
 import './styles/index.css'
 
+// Disable browser's native scroll restoration — let ScrollToTop handle it
+if ('scrollRestoration' in window.history) {
+  window.history.scrollRestoration = 'manual';
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 60 * 1000, retry: 1 },

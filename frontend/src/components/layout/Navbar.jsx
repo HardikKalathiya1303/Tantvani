@@ -7,8 +7,9 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useCartStore } from '../../store/useCartStore';
 import api from '../../utils/api';
 import AnnouncementBar from './Navbar/AnnouncementBar';
-import SearchOverlay from './Navbar/SearchOverlay';
 import MobileDrawer from './Navbar/MobileDrawer';
+import InstagramSearchModal from './Navbar/InstagramSearchModal';
+import BottomNav from './BottomNav';
 
 function IconBtn({ children, onClick, as: Tag = 'button', transparent, label, ...props }) {
   const cls = `relative p-2 sm:p-2.5 transition-colors duration-200 ${
@@ -24,14 +25,11 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQ, setSearchQ] = useState('');
   const [activeDropdown, setActiveDropdown] = useState(null);
   const user = useAuthStore(s => s.user);
   const logout = useAuthStore(s => s.logout);
   const cartCount = useCartStore(s => s.items.reduce((a, i) => a + i.quantity, 0));
-  const navigate = useNavigate();
   const { pathname } = useLocation();
-  const searchRef = useRef(null);
   const dropdownTimer = useRef(null);
 
   const { data: catsData } = useQuery({
@@ -60,22 +58,12 @@ export default function Navbar() {
   }, [pathname]);
 
   useEffect(() => {
-    if (searchOpen) { setTimeout(() => searchRef.current?.focus(), 150); }
-  }, [searchOpen]);
-
-  useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [mobileOpen]);
 
   const isHome = pathname === '/';
   const transparent = isHome && !scrolled;
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    const q = searchQ.trim();
-    if (q) { navigate(`/collections?search=${encodeURIComponent(q)}`); setSearchQ(''); setSearchOpen(false); }
-  };
 
   const openDropdown = (id) => {
     clearTimeout(dropdownTimer.current);
@@ -89,20 +77,20 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+      <header className="fixed top-0 left-0 right-0 z-30 transition-all duration-300">
         <AnnouncementBar scrolled={scrolled} transparent={transparent} />
 
         <div
           className={`w-full transition-all duration-300 ${
             transparent
               ? 'bg-gradient-to-b from-black/60 via-black/25 to-transparent'
-              : 'bg-[#FDFAF5] bg-opacity-98 backdrop-blur-md shadow-[0_4px_24px_-4px_rgba(65,27,30,0.12)] border-b border-[#DDD0BC]/70'
+              : 'bg-white/98 backdrop-blur-md shadow-xs border-b border-neutral-200/80'
           }`}
         >
           <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-10">
-            <div className={`flex items-center transition-all duration-300 ${scrolled ? 'h-16' : 'h-16 sm:h-20'}`}>
+            <div className={`flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-16' : 'h-16 sm:h-20'}`}>
               
-              {/* Left nav */}
+              {/* Desktop Left nav */}
               <nav className="hidden lg:flex items-center gap-7 flex-1">
                 <div
                   className="relative"
@@ -158,8 +146,20 @@ export default function Navbar() {
                 </Link>
               </nav>
 
-              {/* Logo */}
-              <div className="flex-1 lg:flex-none flex justify-center">
+              {/* Mobile Left Hamburger Menu Button (Mobile & Tablet ONLY) */}
+              <div className="flex lg:hidden items-center flex-1 justify-start">
+                <button
+                  type="button"
+                  onClick={() => setMobileOpen(true)}
+                  className={`p-2 transition-colors duration-200 ${transparent ? 'text-[#FDFAF5]' : 'text-[#411B1E]'}`}
+                  aria-label="Open menu"
+                >
+                  <Menu className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Logo (Centered) */}
+              <div className="shrink-0 flex justify-center">
                 <Link to="/" className="block text-center select-none group">
                   <span className={`font-cormorant text-2xl sm:text-3xl font-light tracking-[0.38em] transition-colors duration-300 ${transparent ? 'text-[#FDFAF5] drop-shadow-sm group-hover:text-[#D9B574]' : 'text-[#6B2732] group-hover:text-[#411B1E]'}`}>
                     Tantvani
@@ -170,8 +170,8 @@ export default function Navbar() {
                 </Link>
               </div>
 
-              {/* Right actions */}
-              <div className="flex items-center gap-1 sm:gap-2 flex-1 justify-end">
+              {/* Desktop Right actions */}
+              <div className="hidden lg:flex items-center gap-1 sm:gap-2 flex-1 justify-end">
                 <nav className="hidden lg:flex items-center gap-7 mr-4">
                   <Link to="/about" className={`nav-link transition-colors duration-200 ${transparent ? 'text-[#FDFAF5] hover:text-[#D9B574] drop-shadow-sm' : 'text-[#411B1E] hover:text-[#6B2732]'}`}>
                     Our Story
@@ -208,15 +208,19 @@ export default function Navbar() {
                     </span>
                   </IconBtn>
                 </div>
-
-                <button
-                  onClick={() => setMobileOpen(true)}
-                  className={`lg:hidden ml-1 p-2 transition-colors duration-200 ${transparent ? 'text-[#FDFAF5]' : 'text-[#411B1E]'}`}
-                  aria-label="Open menu"
-                >
-                  <Menu className="w-5 h-5" />
-                </button>
               </div>
+
+              {/* Mobile Right Profile Icon (Mobile & Tablet ONLY) */}
+              <div className="flex lg:hidden items-center flex-1 justify-end">
+                <Link
+                  to={user ? '/account' : '/login'}
+                  className={`p-2 transition-colors duration-200 ${transparent ? 'text-[#FDFAF5]' : 'text-[#411B1E]'}`}
+                  aria-label="Account"
+                >
+                  <User className="w-6 h-6" />
+                </Link>
+              </div>
+
             </div>
           </div>
         </div>
@@ -224,22 +228,26 @@ export default function Navbar() {
 
       {!isHome && <div className="h-[104px] sm:h-[116px]" />}
 
-      <SearchOverlay
-        searchOpen={searchOpen}
-        setSearchOpen={setSearchOpen}
-        searchQ={searchQ}
-        setSearchQ={setSearchQ}
-        handleSearch={handleSearch}
-        searchRef={searchRef}
-        navigate={navigate}
+      {/* Instagram-Style Explore & Search Modal */}
+      <InstagramSearchModal
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
       />
 
+      {/* Mobile Drawer (Hamburger Menu) */}
       <MobileDrawer
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
         cats={cats}
         user={user}
         logout={logout}
+      />
+
+      {/* Bottom Glass Navigation Bar (Mobile & Tablet ONLY) */}
+      <BottomNav
+        onOpenSearch={() => setSearchOpen(prev => !prev)}
+        isSearchOpen={searchOpen}
+        onCloseSearch={() => setSearchOpen(false)}
       />
     </>
   );

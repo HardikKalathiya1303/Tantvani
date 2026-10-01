@@ -72,17 +72,47 @@ exports.changePassword = async (req, res) => {
 
 exports.addAddress = async (req, res) => {
   const user = await User.findById(req.user._id);
+  // If first address or requested default, set as default
+  const isFirst = !user.addresses || user.addresses.length === 0;
+  if (req.body.isDefault || isFirst) {
+    user.addresses.forEach(a => (a.isDefault = false));
+    req.body.isDefault = true;
+  }
+  user.addresses.push(req.body);
+  await user.save();
+  res.json({ success: true, addresses: user.addresses, newAddress: user.addresses[user.addresses.length - 1] });
+};
+
+exports.updateAddress = async (req, res) => {
+  const user = await User.findById(req.user._id);
+  const addr = user.addresses.id(req.params.id);
+  if (!addr) {
+    return res.status(404).json({ success: false, message: 'Address not found' });
+  }
   if (req.body.isDefault) {
     user.addresses.forEach(a => (a.isDefault = false));
   }
-  user.addresses.push(req.body);
+  Object.assign(addr, req.body);
+  await user.save();
+  res.json({ success: true, addresses: user.addresses });
+};
+
+exports.setDefaultAddress = async (req, res) => {
+  const user = await User.findById(req.user._id);
+  user.addresses.forEach(a => {
+    a.isDefault = a._id.toString() === req.params.id;
+  });
   await user.save();
   res.json({ success: true, addresses: user.addresses });
 };
 
 exports.removeAddress = async (req, res) => {
   const user = await User.findById(req.user._id);
+  const wasDefault = user.addresses.find(a => a._id.toString() === req.params.id)?.isDefault;
   user.addresses = user.addresses.filter(a => a._id.toString() !== req.params.id);
+  if (wasDefault && user.addresses.length > 0) {
+    user.addresses[0].isDefault = true;
+  }
   await user.save();
   res.json({ success: true, addresses: user.addresses });
 };
@@ -99,3 +129,13 @@ exports.toggleWishlist = async (req, res) => {
   await user.save();
   res.json({ success: true, wishlist: user.wishlist });
 };
+
+exports.clearWishlist = async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { wishlist: [] },
+    { new: true }
+  );
+  res.json({ success: true, wishlist: [] });
+};
+

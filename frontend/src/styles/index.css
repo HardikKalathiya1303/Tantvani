@@ -15,8 +15,8 @@
   }
 
   body {
-    background-color: #FDFAF5;
-    color: #411B1E;
+    background-color: #FFFFFF;
+    color: #2A0D10;
     font-family: 'Karla', sans-serif;
     font-size: 16.5px;
     line-height: 1.7;
@@ -314,8 +314,26 @@
   animation: shimmer 1.8s ease-in-out infinite;
 }
 
+@keyframes shimmer {
+  0% { background-position: -1200px 0; }
+  100% { background-position: 1200px 0; }
+}
+
+/* ─── Loading bar animation ─── */
+@keyframes loading-bar {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(200%); }
+  100% { transform: translateX(-100%); }
+}
+
 /* ─── Custom scrollbar ─── */
 ::-webkit-scrollbar { width: 7px; }
 ::-webkit-scrollbar-track { background: #FDFAF5; }
 ::-webkit-scrollbar-thumb { background: rgba(107, 39, 50, 0.35); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(107, 39, 50, 0.65); }
+
+/* ─── Smooth global link transitions ─── */
+a, button {
+  -webkit-tap-highlight-color: transparent;
+}
+

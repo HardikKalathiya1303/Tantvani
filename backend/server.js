@@ -10,9 +10,16 @@ const compression = require('compression');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/error');
 
-connectDB();
-
 const app = express();
+
+// Disable ETag to prevent 304 cache issues on mobile browsers
+app.set('etag', false);
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
 
 app.use(compression());
 app.use(helmet());
@@ -52,6 +59,7 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/cart', require('./routes/cart'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/orders', require('./routes/orders'));
@@ -60,8 +68,27 @@ app.use('/api/admin', require('./routes/admin'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
+// Catch-all 404 handler for API routes
+app.use('/api', (req, res) => {
+  res.status(404).json({ success: false, message: `API route ${req.originalUrl} not found` });
+});
+
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Tantvani API running on port ${PORT}`));
+const PORT = process.env.PORT || 6666;
+
+const startServer = async () => {
+  try {
+    await connectDB();
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`✅ Tantvani API running and ready on port ${PORT} (http://localhost:${PORT})`);
+    });
+  } catch (err) {
+    console.error('❌ Failed to start server:', err);
+    process.exit(1);
+  }
+};
+
+startServer();
+
 

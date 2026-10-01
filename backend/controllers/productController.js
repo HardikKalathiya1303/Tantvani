@@ -26,11 +26,18 @@ exports.getProducts = async (req, res) => {
   }
   if (search) {
     const s = search.trim();
+    const matchingCats = await Category.find({ name: { $regex: s, $options: 'i' } }).select('_id');
+    const catIds = matchingCats.map(c => c._id);
     query.$or = [
       { name: { $regex: s, $options: 'i' } },
       { description: { $regex: s, $options: 'i' } },
       { fabric: { $regex: s, $options: 'i' } },
+      { color: { $regex: s, $options: 'i' } },
+      { zari: { $regex: s, $options: 'i' } },
+      { occasion: { $regex: s, $options: 'i' } },
+      { craftTechnique: { $regex: s, $options: 'i' } },
       { tags: { $in: [new RegExp(s, 'i')] } },
+      ...(catIds.length > 0 ? [{ category: { $in: catIds } }] : []),
     ];
   }
   if (minPrice || maxPrice) query.price = {};
