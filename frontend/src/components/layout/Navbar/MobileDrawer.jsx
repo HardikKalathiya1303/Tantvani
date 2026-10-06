@@ -21,8 +21,10 @@ export default function MobileDrawer({ mobileOpen, setMobileOpen, cats, user, lo
             transition={{ type: 'spring', damping: 32, stiffness: 320 }}
             className="fixed top-0 right-0 bottom-0 z-[65] w-[85vw] max-w-sm bg-white flex flex-col shadow-luxury overflow-hidden border-l border-neutral-200"
           >
-            <div className="flex items-center justify-between px-6 py-5 border-b border-neutral-200">
-              <span className="font-cormorant text-2xl tracking-[0.35em] text-[#6B2732]">Tantvani</span>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
+              <Link to="/" onClick={() => setMobileOpen(false)}>
+                <img src="/logo.png" alt="Dhaga Ratan" className="h-9 w-auto object-contain" />
+              </Link>
               <button
                 onClick={() => setMobileOpen(false)}
                 className="p-2 text-[#411B1E]/60 hover:text-[#6B2732] transition-colors"

@@ -41,9 +41,9 @@ export default function LoginPage() {
         className="relative w-full max-w-md"
       >
         <div className="bg-white p-10 shadow-2xl">
-          <div className="text-center mb-10">
-            <h1 className="font-cormorant text-4xl tracking-[0.3em] text-wine">Tantvani</h1>
-            <p className="font-jost text-[10px] tracking-[0.4em] uppercase text-gray-400 mt-1">Admin Panel</p>
+          <div className="text-center mb-8 flex flex-col items-center justify-center">
+            <img src="/logo.png" alt="Dhaga Ratan" className="h-14 w-auto object-contain mb-2" />
+            <p className="font-jost text-[10px] tracking-[0.4em] uppercase text-gray-400">Admin Panel</p>
           </div>
           <h2 className="font-cormorant text-2xl text-gray-800 mb-6">Sign In</h2>
           <form onSubmit={handleSubmit} className="space-y-4">

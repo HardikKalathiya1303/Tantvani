@@ -88,7 +88,7 @@ export default function Navbar() {
           }`}
         >
           <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-10">
-            <div className={`flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-16' : 'h-16 sm:h-20'}`}>
+            <div className={`relative flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-14 sm:h-16' : 'h-16 sm:h-20'}`}>
               
               {/* Desktop Left nav */}
               <nav className="hidden lg:flex items-center gap-7 flex-1">
@@ -147,7 +147,7 @@ export default function Navbar() {
               </nav>
 
               {/* Mobile Left Hamburger Menu Button (Mobile & Tablet ONLY) */}
-              <div className="flex lg:hidden items-center flex-1 justify-start">
+              <div className="flex lg:hidden items-center justify-start z-20">
                 <button
                   type="button"
                   onClick={() => setMobileOpen(true)}
@@ -158,16 +158,31 @@ export default function Navbar() {
                 </button>
               </div>
 
-              {/* Logo (Centered) */}
-              <div className="shrink-0 flex justify-center">
+              {/* Logo (Centered - Dead Center on Mobile via Absolute Positioning) */}
+              <div className="shrink-0 lg:flex-initial flex justify-center items-center py-1 absolute lg:static left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 lg:translate-x-0 lg:translate-y-0 z-10 pointer-events-auto">
                 <Link to="/" className="block text-center select-none group">
-                  <span className={`font-cormorant text-2xl sm:text-3xl font-light tracking-[0.38em] transition-colors duration-300 ${transparent ? 'text-[#FDFAF5] drop-shadow-sm group-hover:text-[#D9B574]' : 'text-[#6B2732] group-hover:text-[#411B1E]'}`}>
-                    Tantvani
-                  </span>
-                  <span className={`block text-[8px] font-jost tracking-[0.55em] uppercase mt-0.5 transition-colors duration-300 ${transparent ? 'text-[#D9B574] drop-shadow-sm' : 'text-[#C99B4E]'}`}>
-                    Luxury Sarees
-                  </span>
+                  <div className="flex items-center justify-center transition-all duration-300 px-1 py-1">
+                    <img
+                      src="/logo.png"
+                      alt="Dhaga Ratan"
+                      className={`w-auto object-contain transition-all duration-300 ${
+                        transparent ? 'brightness-120 drop-shadow-md' : 'drop-shadow-xs'
+                      } ${
+                        scrolled ? 'h-12 sm:h-14 max-w-[165px] sm:max-w-none' : 'h-14  sm:h-16 max-w-[175px] sm:max-w-none'
+                      }`}
+                    />
+                  </div>
                 </Link>
+              </div>
+
+              {/* Mobile Right Action Icons (Mobile ONLY) */}
+              <div className="flex lg:hidden items-center gap-1 justify-end z-20">
+                <IconBtn onClick={() => setSearchOpen(true)} transparent={transparent} label="Search">
+                  <Search className="w-5 h-5" />
+                </IconBtn>
+                <IconBtn as={Link} to={user ? '/account' : '/login'} transparent={transparent} label="Account">
+                  <User className="w-5 h-5" />
+                </IconBtn>
               </div>
 
               {/* Desktop Right actions */}
@@ -208,17 +223,6 @@ export default function Navbar() {
                     </span>
                   </IconBtn>
                 </div>
-              </div>
-
-              {/* Mobile Right Profile Icon (Mobile & Tablet ONLY) */}
-              <div className="flex lg:hidden items-center flex-1 justify-end">
-                <Link
-                  to={user ? '/account' : '/login'}
-                  className={`p-2 transition-colors duration-200 ${transparent ? 'text-[#FDFAF5]' : 'text-[#411B1E]'}`}
-                  aria-label="Account"
-                >
-                  <User className="w-6 h-6" />
-                </Link>
               </div>
 
             </div>

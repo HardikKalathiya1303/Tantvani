@@ -10,8 +10,9 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand */}
           <div>
-            <h2 className="font-cormorant text-3xl tracking-[0.3em] text-cream-light mb-2">Tantvani</h2>
-            <p className="font-jost text-[10px] tracking-[0.4em] uppercase text-secondary mb-5">Luxury Sarees</p>
+            <Link to="/" className="inline-block mb-4">
+              <img src="/logo.png" alt="Dhaga Ratan" className="h-14 sm:h-16 w-auto object-contain brightness-120 drop-shadow" />
+            </Link>
             <p className="font-karla text-sm text-cream-light/50 leading-relaxed mb-6">
               Where ancient weaving traditions meet contemporary elegance. Each saree tells a story of heritage, craft, and timeless beauty.
             </p>

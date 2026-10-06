@@ -19,9 +19,8 @@ function AuthLayout({ children, title, subtitle }) {
             />
           ))}
         </div>
-        <div className="relative z-10 text-center">
-          <h1 className="font-cormorant text-5xl font-light text-cream-light tracking-[0.35em] mb-3">Tantvani</h1>
-          <p className="font-jost text-[9px] tracking-[0.55em] uppercase text-gold mb-16">Luxury Sarees</p>
+        <div className="relative z-10 text-center flex flex-col items-center">
+          <img src="/logo.png" alt="Dhaga Ratan" className="h-16 sm:h-20 w-auto object-contain mb-6 drop-shadow-lg" />
           <div className="w-px h-24 bg-gradient-to-b from-transparent via-cream-light/25 to-transparent mx-auto mb-16" />
           <blockquote className="font-cormorant text-2xl font-light italic text-cream-light/75 max-w-xs leading-relaxed">
             "Every saree is a canvas where heritage and artistry meet in perfect harmony."

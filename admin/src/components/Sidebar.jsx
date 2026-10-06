@@ -19,9 +19,11 @@ export default function Sidebar() {
   return (
     <aside className="w-64 bg-sidebar text-white h-screen flex flex-col fixed left-0 top-0 z-40">
       {/* Logo */}
-      <div className="p-6 border-b border-white/10">
-        <h1 className="font-cormorant text-2xl tracking-[0.3em] text-cream">Tantvani</h1>
-        <p className="font-jost text-[9px] tracking-[0.4em] uppercase text-white/30 mt-0.5">Admin Panel</p>
+      <div className="p-5 border-b border-white/10 flex flex-col items-center">
+        <Link to="/">
+          <img src="/logo.png" alt="Dhaga Ratan" className="h-12 w-auto object-contain brightness-110 drop-shadow" />
+        </Link>
+        <p className="font-jost text-[9px] tracking-[0.4em] uppercase text-white/40 mt-2">Admin Panel</p>
       </div>
 
       {/* Admin info */}
