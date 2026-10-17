@@ -4,8 +4,24 @@ const mongoose = require('mongoose');
 const { cloudinary } = require('../config/cloudinary');
 
 exports.getProducts = async (req, res) => {
-  const { page = 1, limit = 12, category, search, sort, minPrice, maxPrice, fabric, occasion, color, featured, newArrival, bestseller } = req.query;
-  const query = { isActive: true };
+  const { page = 1, limit = 12, category, search, sort, minPrice, maxPrice, fabric, occasion, color, featured, newArrival, bestseller, stockStatus, status, includeInactive } = req.query;
+  const query = {};
+
+  if (includeInactive === 'true' || req.query.all === 'true') {
+    if (status === 'active') query.isActive = true;
+    else if (status === 'inactive') query.isActive = false;
+  } else {
+    query.isActive = true;
+  }
+
+  // Stock status filter
+  if (stockStatus === 'out_of_stock') {
+    query.stock = { $lte: 0 };
+  } else if (stockStatus === 'low_stock') {
+    query.stock = { $gt: 0, $lte: 5 };
+  } else if (stockStatus === 'in_stock') {
+    query.stock = { $gt: 0 };
+  }
 
   if (category) {
     if (mongoose.Types.ObjectId.isValid(category) && category.length === 24) {
@@ -30,6 +46,7 @@ exports.getProducts = async (req, res) => {
     const catIds = matchingCats.map(c => c._id);
     query.$or = [
       { name: { $regex: s, $options: 'i' } },
+      { sku: { $regex: s, $options: 'i' } },
       { description: { $regex: s, $options: 'i' } },
       { fabric: { $regex: s, $options: 'i' } },
       { color: { $regex: s, $options: 'i' } },
@@ -43,9 +60,9 @@ exports.getProducts = async (req, res) => {
   if (minPrice || maxPrice) query.price = {};
   if (minPrice) query.price.$gte = Number(minPrice);
   if (maxPrice) query.price.$lte = Number(maxPrice);
-  if (fabric) query.fabric = { $in: fabric.split(',').map(f => new RegExp(f.trim(), 'i')) };
-  if (occasion) query.occasion = { $in: occasion.split(',').map(o => new RegExp(o.trim(), 'i')) };
-  if (color) query.color = { $in: color.split(',').map(c => new RegExp(c.trim(), 'i')) };
+  if (fabric && fabric !== 'all') query.fabric = { $in: fabric.split(',').map(f => new RegExp(f.trim(), 'i')) };
+  if (occasion && occasion !== 'all') query.occasion = { $in: occasion.split(',').map(o => new RegExp(o.trim(), 'i')) };
+  if (color && color !== 'all') query.color = { $in: color.split(',').map(c => new RegExp(c.trim(), 'i')) };
   if (featured === 'true') query.isFeatured = true;
   if (newArrival === 'true') query.isNewArrival = true;
   if (bestseller === 'true') query.isBestseller = true;
@@ -55,6 +72,9 @@ exports.getProducts = async (req, res) => {
   else if (sort === 'price_desc') sortObj = { price: -1 };
   else if (sort === 'newest') sortObj = { createdAt: -1 };
   else if (sort === 'rating') sortObj = { rating: -1 };
+  else if (sort === 'sold_desc') sortObj = { soldCount: -1 };
+  else if (sort === 'stock_asc') sortObj = { stock: 1 };
+  else if (sort === 'stock_desc') sortObj = { stock: -1 };
   else sortObj = { createdAt: -1 };
 
   const total = await Product.countDocuments(query);

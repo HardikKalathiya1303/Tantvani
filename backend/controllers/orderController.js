@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const Razorpay = require('razorpay');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
@@ -68,17 +69,73 @@ exports.updateOrderToPaid = async (req, res) => {
 };
 
 exports.getAllOrders = async (req, res) => {
-  const { page = 1, limit = 20, status } = req.query;
+  const { page = 1, limit = 20, status, search, paymentMethod, isPaid, dateRange, sort } = req.query;
   const query = {};
-  if (status) query.orderStatus = status;
+
+  if (status && status !== 'all') query.orderStatus = status;
+  if (paymentMethod && paymentMethod !== 'all') query.paymentMethod = paymentMethod;
+  if (isPaid !== undefined && isPaid !== '' && isPaid !== 'all') {
+    query.isPaid = isPaid === 'true';
+  }
+
+  // Date range filter
+  if (dateRange && dateRange !== 'all') {
+    const now = new Date();
+    if (dateRange === 'today') {
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      query.createdAt = { $gte: startOfDay };
+    } else if (dateRange === 'week') {
+      const pastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      query.createdAt = { $gte: pastWeek };
+    } else if (dateRange === 'month') {
+      const pastMonth = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      query.createdAt = { $gte: pastMonth };
+    }
+  }
+
+  // Search filter
+  if (search && search.trim()) {
+    const s = search.trim();
+    const userMatches = await mongoose.model('User').find({
+      $or: [
+        { name: { $regex: s, $options: 'i' } },
+        { email: { $regex: s, $options: 'i' } },
+        { phone: { $regex: s, $options: 'i' } },
+      ],
+    }).select('_id');
+    const userIds = userMatches.map(u => u._id);
+
+    const searchConditions = [
+      { 'shippingAddress.name': { $regex: s, $options: 'i' } },
+      { 'shippingAddress.phone': { $regex: s, $options: 'i' } },
+      { 'shippingAddress.city': { $regex: s, $options: 'i' } },
+      { 'shippingAddress.pincode': { $regex: s, $options: 'i' } },
+      ...(userIds.length > 0 ? [{ user: { $in: userIds } }] : []),
+    ];
+
+    if (mongoose.Types.ObjectId.isValid(s) && s.length === 24) {
+      searchConditions.push({ _id: s });
+    }
+
+    query.$or = searchConditions;
+  }
+
+  let sortObj = { createdAt: -1 };
+  if (sort === 'oldest') sortObj = { createdAt: 1 };
+  else if (sort === 'amount_high') sortObj = { totalPrice: -1 };
+  else if (sort === 'amount_low') sortObj = { totalPrice: 1 };
+
   const total = await Order.countDocuments(query);
+  const pages = Math.ceil(total / Number(limit)) || 1;
   const orders = await Order.find(query)
-    .populate('user', 'name email')
-    .sort('-createdAt')
+    .populate('user', 'name email phone')
+    .sort(sortObj)
     .limit(Number(limit))
     .skip((Number(page) - 1) * Number(limit));
-  res.json({ success: true, orders, total });
+
+  res.json({ success: true, orders, total, pages, page: Number(page) });
 };
+
 
 exports.updateOrderStatus = async (req, res) => {
   const order = await Order.findById(req.params.id);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, Image, X, Upload } from 'lucide-react';
+import { Plus, Edit2, Trash2, Image, X, Upload, RotateCcw } from 'lucide-react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
@@ -250,6 +250,8 @@ function BannerModal({ banner, onClose, onSave }) {
 }
 
 export default function BannersPage() {
+  const [placementFilter, setPlacementFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editBanner, setEditBanner] = useState(null);
   const qc = useQueryClient();
@@ -274,36 +276,101 @@ export default function BannersPage() {
     qc.invalidateQueries(['admin-banners']);
   };
 
+  const banners = (data?.banners || []).filter(b => {
+    if (placementFilter && b.placement !== placementFilter) return false;
+    if (statusFilter === 'active' && !b.isActive) return false;
+    if (statusFilter === 'inactive' && b.isActive) return false;
+    return true;
+  });
+
+  const isFiltered = Boolean(placementFilter || statusFilter);
+
   return (
-    <div className="p-6 sm:p-8 max-w-[1400px] mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <div className="p-6 sm:p-8 max-w-[1400px] mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-cormorant text-3xl sm:text-4xl text-[#411B1E] font-medium">Banners</h1>
+          <span className="font-jost text-[10px] tracking-[0.25em] uppercase text-[#C99B4E] font-semibold">Store Showcase</span>
+          <h1 className="font-cormorant text-3xl sm:text-4xl text-[#411B1E] font-medium mt-0.5">Banners</h1>
           <p className="font-karla text-sm text-gray-500 mt-1">
-            {data?.banners?.length || 0} active showcase banners
+            {data?.banners?.length || 0} promotional banners
+            {isFiltered && ` · Showing ${banners.length} matching`}
           </p>
         </div>
-        <button
-          onClick={() => { setEditBanner(null); setShowModal(true); }}
-          className="btn-primary flex items-center justify-center gap-2 shadow-sm"
-        >
-          <Plus className="w-4 h-4" /> Add Banner
-        </button>
+        <div className="flex items-center gap-2">
+          {isFiltered && (
+            <button
+              onClick={() => { setPlacementFilter(''); setStatusFilter(''); }}
+              className="text-xs font-jost text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded border border-rose-200 transition-colors flex items-center gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Reset Filters
+            </button>
+          )}
+          <button
+            onClick={() => { setEditBanner(null); setShowModal(true); }}
+            className="btn-primary flex items-center justify-center gap-2 shadow-sm text-xs py-2 px-4"
+          >
+            <Plus className="w-4 h-4" /> Add Banner
+          </button>
+        </div>
+      </div>
+
+      {/* Filter Toolbar */}
+      <div className="card p-4 border border-gray-200 bg-white shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-gray-400 text-xs font-jost">Placement:</span>
+          {['', 'hero', 'middle', 'bottom', 'promo'].map(p => (
+            <button
+              key={p}
+              onClick={() => setPlacementFilter(p)}
+              className={`px-3 py-1.5 rounded-sm uppercase text-[10px] tracking-wider transition-all font-jost ${
+                placementFilter === p
+                  ? 'bg-[#6B2732] text-white font-medium shadow-xs'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {p || 'All Placements'}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400 text-xs font-jost">Status:</span>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="input text-xs py-1.5 px-3 w-auto"
+          >
+            <option value="">All Statuses</option>
+            <option value="active">Active Only</option>
+            <option value="inactive">Inactive Only</option>
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {isLoading ? (
           [...Array(3)].map((_, i) => <div key={i} className="card h-48 shimmer rounded-lg" />)
-        ) : data?.banners?.length === 0 ? (
+        ) : banners.length === 0 ? (
           <div className="col-span-full py-16 text-center text-gray-400 card rounded-lg">
             <Image className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p className="font-cormorant text-2xl text-gray-600">No banners yet</p>
-            <button onClick={() => { setEditBanner(null); setShowModal(true); }} className="btn-primary mt-4 inline-flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Add First Banner
-            </button>
+            <p className="font-cormorant text-2xl text-gray-600">
+              {isFiltered ? 'No banners match selected filter' : 'No banners yet'}
+            </p>
+            {isFiltered ? (
+              <button
+                onClick={() => { setPlacementFilter(''); setStatusFilter(''); }}
+                className="btn-secondary mt-3 inline-flex items-center gap-1.5 text-xs"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> Clear Filters
+              </button>
+            ) : (
+              <button onClick={() => { setEditBanner(null); setShowModal(true); }} className="btn-primary mt-4 inline-flex items-center gap-2">
+                <Plus className="w-4 h-4" /> Add First Banner
+              </button>
+            )}
           </div>
         ) : (
-          data?.banners?.map(b => (
+          banners.map(b => (
             <div key={b._id} className="card rounded-lg overflow-hidden group border border-gray-200 hover:shadow-md transition-shadow">
               <div className="h-44 bg-gray-100 relative overflow-hidden">
                 {b.image ? (

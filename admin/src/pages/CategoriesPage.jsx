@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, Tags, X, Upload } from 'lucide-react';
+import { Plus, Edit2, Trash2, Tags, X, Upload, Search, RotateCcw } from 'lucide-react';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
@@ -210,6 +210,8 @@ function CategoryModal({ category, onClose, onSave }) {
 }
 
 export default function CategoriesPage() {
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editCat, setEditCat] = useState(null);
   const qc = useQueryClient();
@@ -234,36 +236,98 @@ export default function CategoriesPage() {
     qc.invalidateQueries(['admin-categories']);
   };
 
+  const categories = (data?.categories || []).filter(c => {
+    if (statusFilter === 'active' && !c.isActive) return false;
+    if (statusFilter === 'inactive' && c.isActive) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      return c.name?.toLowerCase().includes(q) || c.description?.toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  const isFiltered = Boolean(search.trim() || statusFilter);
+
   return (
-    <div className="p-6 sm:p-8 max-w-[1400px] mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <div className="p-6 sm:p-8 max-w-[1400px] mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-cormorant text-3xl sm:text-4xl text-[#411B1E] font-medium">Categories</h1>
+          <span className="font-jost text-[10px] tracking-[0.25em] uppercase text-[#C99B4E] font-semibold">Collections</span>
+          <h1 className="font-cormorant text-3xl sm:text-4xl text-[#411B1E] font-medium mt-0.5">Categories</h1>
           <p className="font-karla text-sm text-gray-500 mt-1">
-            {data?.categories?.length || 0} active collections
+            {data?.categories?.length || 0} total saree collections
+            {isFiltered && ` · Showing ${categories.length} matching`}
           </p>
         </div>
-        <button
-          onClick={() => { setEditCat(null); setShowModal(true); }}
-          className="btn-primary flex items-center justify-center gap-2 shadow-sm"
-        >
-          <Plus className="w-4 h-4" /> Add Category
-        </button>
+        <div className="flex items-center gap-2">
+          {isFiltered && (
+            <button
+              onClick={() => { setSearch(''); setStatusFilter(''); }}
+              className="text-xs font-jost text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded border border-rose-200 transition-colors flex items-center gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Reset Filters
+            </button>
+          )}
+          <button
+            onClick={() => { setEditCat(null); setShowModal(true); }}
+            className="btn-primary flex items-center justify-center gap-2 shadow-sm text-xs py-2 px-4"
+          >
+            <Plus className="w-4 h-4" /> Add Category
+          </button>
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="card p-4 border border-gray-200 bg-white shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search categories by name or description..."
+            className="input pl-10 w-full text-xs"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <span className="text-gray-400 text-xs font-jost">Status:</span>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="input text-xs py-1.5 px-3 w-auto"
+          >
+            <option value="">All Categories</option>
+            <option value="active">Active Only</option>
+            <option value="inactive">Inactive Only</option>
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {isLoading ? (
           [...Array(6)].map((_, i) => <div key={i} className="card h-48 shimmer rounded-lg" />)
-        ) : data?.categories?.length === 0 ? (
+        ) : categories.length === 0 ? (
           <div className="col-span-full py-16 text-center text-gray-400 card rounded-lg">
             <Tags className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p className="font-cormorant text-2xl text-gray-600">No categories yet</p>
-            <button onClick={() => { setEditCat(null); setShowModal(true); }} className="btn-primary mt-4 inline-flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Add First Category
-            </button>
+            <p className="font-cormorant text-2xl text-gray-600">
+              {isFiltered ? 'No categories match the filter' : 'No categories yet'}
+            </p>
+            {isFiltered ? (
+              <button
+                onClick={() => { setSearch(''); setStatusFilter(''); }}
+                className="btn-secondary mt-3 inline-flex items-center gap-1.5 text-xs"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> Clear Filter
+              </button>
+            ) : (
+              <button onClick={() => { setEditCat(null); setShowModal(true); }} className="btn-primary mt-4 inline-flex items-center gap-2">
+                <Plus className="w-4 h-4" /> Add First Category
+              </button>
+            )}
           </div>
         ) : (
-          data?.categories?.map(cat => (
+          categories.map(cat => (
             <motion.div
               key={cat._id}
               initial={{ opacity: 0 }}

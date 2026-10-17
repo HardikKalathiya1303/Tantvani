@@ -608,6 +608,12 @@ function ProductModal({ product, categories, onClose, onSave }) {
 export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [stockFilter, setStockFilter] = useState('');
+  const [fabricFilter, setFabricFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [badgeFilter, setBadgeFilter] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
   const [modalProduct, setModalProduct] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [page, setPage] = useState(1);
@@ -618,9 +624,46 @@ export default function ProductsPage() {
     return () => clearTimeout(t);
   }, [search]);
 
+  const activeFiltersCount = [
+    debouncedSearch,
+    categoryFilter,
+    stockFilter,
+    fabricFilter,
+    statusFilter,
+    badgeFilter,
+    sortBy !== 'newest' ? sortBy : null,
+  ].filter(Boolean).length;
+
+  const resetFilters = () => {
+    setSearch('');
+    setDebouncedSearch('');
+    setCategoryFilter('');
+    setStockFilter('');
+    setFabricFilter('');
+    setStatusFilter('');
+    setBadgeFilter('');
+    setSortBy('newest');
+    setPage(1);
+  };
+
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-products', debouncedSearch, page],
-    queryFn: () => api.get('/products', { params: { search: debouncedSearch, page, limit: 15 } }).then(r => r.data),
+    queryKey: ['admin-products', debouncedSearch, categoryFilter, stockFilter, fabricFilter, statusFilter, badgeFilter, sortBy, page],
+    queryFn: () => api.get('/products', {
+      params: {
+        search: debouncedSearch || undefined,
+        category: categoryFilter || undefined,
+        stockStatus: stockFilter || undefined,
+        fabric: fabricFilter || undefined,
+        status: statusFilter || undefined,
+        includeInactive: 'true',
+        featured: badgeFilter === 'featured' ? 'true' : undefined,
+        newArrival: badgeFilter === 'newArrival' ? 'true' : undefined,
+        bestseller: badgeFilter === 'bestseller' ? 'true' : undefined,
+        sort: sortBy,
+        page,
+        limit: 15,
+      }
+    }).then(r => r.data),
   });
 
   const { data: catsData } = useQuery({
@@ -664,33 +707,147 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="p-6 sm:p-8 max-w-[1400px] mx-auto">
+    <div className="p-6 sm:p-8 max-w-[1400px] mx-auto space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-cormorant text-3xl sm:text-4xl text-[#411B1E] font-medium">Products</h1>
+          <span className="font-jost text-[10px] tracking-[0.25em] uppercase text-[#C99B4E] font-semibold">Inventory Catalog</span>
+          <h1 className="font-cormorant text-3xl sm:text-4xl text-[#411B1E] font-medium mt-0.5">Products</h1>
           <p className="font-karla text-sm text-gray-500 mt-1">
-            {data?.total || 0} luxury sarees in inventory
+            {data?.total || 0} luxury sarees in catalog
+            {activeFiltersCount > 0 && ` · Filters Active (${activeFiltersCount})`}
           </p>
         </div>
-        <button
-          onClick={openCreate}
-          className="btn-primary flex items-center justify-center gap-2 shadow-sm"
-        >
-          <Plus className="w-4 h-4" /> Add Product
-        </button>
+        <div className="flex items-center gap-2">
+          {activeFiltersCount > 0 && (
+            <button
+              onClick={resetFilters}
+              className="text-xs font-jost text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded border border-rose-200 transition-colors flex items-center gap-1.5"
+            >
+              Reset Filters ({activeFiltersCount})
+            </button>
+          )}
+          <button
+            onClick={openCreate}
+            className="btn-primary flex items-center justify-center gap-2 shadow-sm text-xs py-2 px-4"
+          >
+            <Plus className="w-4 h-4" /> Add Product
+          </button>
+        </div>
       </div>
 
-      {/* Search Filter */}
-      <div className="relative mb-6 max-w-md">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search sarees by name, SKU, fabric..."
-          value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1); }}
-          className="input pl-10 bg-white"
-        />
+      {/* Filter Toolbar */}
+      <div className="card p-4 border border-gray-200 bg-white shadow-xs space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+          {/* Search */}
+          <div className="lg:col-span-2 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search sarees by name, SKU, fabric..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              className="input pl-9 w-full text-xs"
+            />
+          </div>
+
+          {/* Category Filter */}
+          <div>
+            <select
+              value={categoryFilter}
+              onChange={e => { setCategoryFilter(e.target.value); setPage(1); }}
+              className="input w-full text-xs"
+            >
+              <option value="">All Categories</option>
+              {catsData?.categories?.map(c => (
+                <option key={c._id} value={c._id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Stock Filter */}
+          <div>
+            <select
+              value={stockFilter}
+              onChange={e => { setStockFilter(e.target.value); setPage(1); }}
+              className="input w-full text-xs"
+            >
+              <option value="">All Stock Levels</option>
+              <option value="in_stock">In Stock (&gt;5)</option>
+              <option value="low_stock">Low Stock (1-5)</option>
+              <option value="out_of_stock">Out of Stock (0)</option>
+            </select>
+          </div>
+
+          {/* Fabric Filter */}
+          <div>
+            <select
+              value={fabricFilter}
+              onChange={e => { setFabricFilter(e.target.value); setPage(1); }}
+              className="input w-full text-xs"
+            >
+              <option value="">All Fabrics</option>
+              {FABRICS.map(f => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <select
+              value={statusFilter}
+              onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+              className="input w-full text-xs"
+            >
+              <option value="">All Status</option>
+              <option value="active">Active Only</option>
+              <option value="inactive">Inactive Only</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Secondary Row: Badges & Sorting */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs font-jost">
+            <span className="text-gray-400 mr-1 text-[11px] uppercase tracking-wider">Highlight:</span>
+            {[
+              { id: '', label: 'All' },
+              { id: 'featured', label: 'Featured' },
+              { id: 'bestseller', label: 'Bestseller' },
+              { id: 'newArrival', label: 'New Arrival' },
+            ].map(b => (
+              <button
+                key={b.id}
+                onClick={() => { setBadgeFilter(b.id); setPage(1); }}
+                className={`px-2.5 py-1 rounded-sm uppercase text-[10px] tracking-wider transition-all ${
+                  badgeFilter === b.id
+                    ? 'bg-[#6B2732] text-white font-medium'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-xs font-jost">Sort:</span>
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value)}
+              className="input text-xs py-1 px-2.5 w-auto"
+            >
+              <option value="newest">Newest First</option>
+              <option value="price_asc">Price: Low to High</option>
+              <option value="price_desc">Price: High to Low</option>
+              <option value="sold_desc">Most Sold</option>
+              <option value="stock_asc">Stock: Low to High</option>
+              <option value="stock_desc">Stock: High to Low</option>
+              <option value="rating">Highest Rated</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Table */}
