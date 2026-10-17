@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../utils/api';
 
+// Dedup guard — prevents concurrent duplicate fetchMe calls
+let _fetchMePromise = null;
+
 export const useAuthStore = create(
   persist(
     (set, get) => ({
@@ -47,12 +50,19 @@ export const useAuthStore = create(
       },
 
       fetchMe: async () => {
-        try {
-          const { data } = await api.get('/auth/me');
-          set({ user: data.user });
-        } catch {
-          set({ user: null, token: null });
-        }
+        // If already fetching, return existing promise (dedup)
+        if (_fetchMePromise) return _fetchMePromise;
+        _fetchMePromise = (async () => {
+          try {
+            const { data } = await api.get('/auth/me');
+            set({ user: data.user });
+          } catch {
+            set({ user: null, token: null });
+          } finally {
+            _fetchMePromise = null;
+          }
+        })();
+        return _fetchMePromise;
       },
     }),
     { name: 'tantvani-auth', partialize: state => ({ token: state.token, user: state.user }) }

@@ -1,6 +1,7 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from './store/useAuthStore';
 import { useCartStore } from './store/useCartStore';
 import Layout from './components/layout/Layout';
@@ -43,13 +44,27 @@ export default function App() {
   const fetchMe = useAuthStore(s => s.fetchMe);
   const syncWithBackend = useCartStore(s => s.syncWithBackend);
   const location = useLocation();
+  const queryClient = useQueryClient();
+  const didInit = useRef(false);
 
   useEffect(() => {
-    if (token) {
-      fetchMe();
+    if (token && !didInit.current) {
+      didInit.current = true;
+      fetchMe().then(() => {
+        // Seed React Query cache so pages using useQuery(['me']) don't re-fetch
+        const user = useAuthStore.getState().user;
+        if (user) {
+          queryClient.setQueryData(['me'], { user });
+        }
+      });
       syncWithBackend();
     }
-  }, [token, fetchMe, syncWithBackend]);
+    if (!token) {
+      didInit.current = false;
+    }
+  }, [token, fetchMe, syncWithBackend, queryClient]);
+
+
 
   return (
     <Layout>

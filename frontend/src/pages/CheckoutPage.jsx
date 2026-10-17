@@ -396,15 +396,19 @@ export default function CheckoutPage() {
       const options = {
         key: rzpData.keyId,
         amount: rzpData.amount,
-        currency: rzpData.currency,
+        currency: rzpData.currency || 'INR',
         name: 'Tantvani',
-        description: 'Luxury Saree Purchase',
+        description: 'Luxury Handloom Saree Order',
         order_id: rzpData.razorpayOrderId,
         prefill: {
-          name: activeShippingAddress.name,
-          email: activeShippingAddress.email || user?.email || '',
+          name: activeShippingAddress?.name || user?.name || '',
+          email: activeShippingAddress?.email || user?.email || '',
+          contact: activeShippingAddress?.phone || user?.phone || '',
         },
-        theme: { color: '#18181b' },
+        notes: {
+          address: `${activeShippingAddress?.street || ''}, ${activeShippingAddress?.city || ''}, ${activeShippingAddress?.pincode || ''}`,
+        },
+        theme: { color: '#881337' },
         handler: async (response) => {
           try {
             const orderPayload = {

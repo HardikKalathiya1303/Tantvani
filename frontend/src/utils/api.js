@@ -11,15 +11,24 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(config => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  let token = localStorage.getItem('token');
+  if (!token) {
+    try {
+      const persisted = JSON.parse(localStorage.getItem('tantvani-auth') || '{}');
+      token = persisted?.state?.token;
+      if (token) localStorage.setItem('token', token);
+    } catch {}
+  }
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 
 api.interceptors.response.use(
   res => res,
   err => {
-    if (err.response?.status === 401) {
+    if (err.response?.status === 401 && !err.config?.url?.includes('/auth/me')) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
     }

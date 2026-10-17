@@ -3,11 +3,6 @@ const Razorpay = require('razorpay');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'placeholder_secret',
-});
-
 exports.createOrder = async (req, res) => {
   const { orderItems, shippingAddress, paymentMethod } = req.body;
   if (!orderItems?.length) return res.status(400).json({ success: false, message: 'No order items' });
@@ -100,12 +95,25 @@ exports.updateOrderStatus = async (req, res) => {
 
 exports.createRazorpayOrder = async (req, res) => {
   const { amount } = req.body;
-  if (!amount || amount < 1) return res.status(400).json({ success: false, message: 'Invalid amount' });
+  if (!amount || amount < 1) {
+    return res.status(400).json({ success: false, message: 'Invalid amount' });
+  }
 
-  const razorpayOrder = await razorpay.orders.create({
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+  if (!keyId || !keySecret || keyId === 'rzp_test_placeholder') {
+    return res.status(500).json({
+      success: false,
+      message: 'Razorpay keys not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in backend .env',
+    });
+  }
+
+  const instance = new Razorpay({ key_id: keyId, key_secret: keySecret });
+  const razorpayOrder = await instance.orders.create({
     amount: Math.round(amount * 100), // paise
     currency: 'INR',
-    receipt: `tantvani_${Date.now()}`,
+    receipt: `tantvani_${Date.now()}`.slice(0, 40),
   });
 
   res.json({
@@ -113,7 +121,7 @@ exports.createRazorpayOrder = async (req, res) => {
     razorpayOrderId: razorpayOrder.id,
     amount: razorpayOrder.amount,
     currency: razorpayOrder.currency,
-    keyId: process.env.RAZORPAY_KEY_ID,
+    keyId: keyId,
   });
 };
 
@@ -131,9 +139,14 @@ exports.verifyAndCreateOrder = async (req, res) => {
     totalPrice,
   } = req.body;
 
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keySecret) {
+    return res.status(500).json({ success: false, message: 'Razorpay secret not configured on server' });
+  }
+
   const sign = `${razorpay_order_id}|${razorpay_payment_id}`;
   const expectedSign = crypto
-    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'placeholder_secret')
+    .createHmac('sha256', keySecret)
     .update(sign)
     .digest('hex');
 
@@ -180,3 +193,99 @@ exports.getDashboardStats = async (req, res) => {
   const recentOrders = await Order.find().sort('-createdAt').limit(5).populate('user', 'name email');
   res.json({ success: true, totalOrders, pendingOrders, totalRevenue, recentOrders });
 };
+
+exports.cancelOrder = async (req, res) => {
+  const { reason } = req.body || {};
+  const order = await Order.findById(req.params.id);
+  if (!order) {
+    return res.status(404).json({ success: false, message: 'Order not found' });
+  }
+
+  // Authorization check (user can only cancel their own order, or admin)
+  const isOwner = order.user.toString() === req.user._id.toString();
+  const isAdmin = req.user.role === 'admin';
+  if (!isOwner && !isAdmin) {
+    return res.status(403).json({ success: false, message: 'Not authorized to cancel this order' });
+  }
+
+  // Check if order is already cancelled
+  if (order.orderStatus === 'cancelled') {
+    return res.status(400).json({ success: false, message: 'Order is already cancelled' });
+  }
+
+  // Check if order is already shipped or delivered
+  if (['shipped', 'delivered', 'returned'].includes(order.orderStatus)) {
+    return res.status(400).json({
+      success: false,
+      message: `Cannot cancel order. It is already ${order.orderStatus}.`,
+    });
+  }
+
+  // 12-hour limit check:
+  // After order placement, user can only cancel within 12 hours.
+  const orderCreatedAt = new Date(order.createdAt).getTime();
+  const now = Date.now();
+  const elapsedMilliseconds = now - orderCreatedAt;
+  const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
+
+  if (!isAdmin && elapsedMilliseconds > TWELVE_HOURS_MS) {
+    const hoursPast = Math.floor(elapsedMilliseconds / (60 * 60 * 1000));
+    return res.status(400).json({
+      success: false,
+      message: `Cancellation window has expired. Orders can only be cancelled within 12 hours of placement (${hoursPast} hours have passed).`,
+    });
+  }
+
+  // Restore inventory (product stock)
+  if (order.orderItems?.length) {
+    for (const item of order.orderItems) {
+      if (item.product) {
+        await Product.findByIdAndUpdate(item.product, {
+          $inc: { stock: item.quantity, soldCount: -item.quantity },
+        });
+      }
+    }
+  }
+
+  // Process Razorpay refund if paid online
+  let refundSuccess = false;
+  if (order.isPaid && order.paymentResult?.id && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+    try {
+      const instance = new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET,
+      });
+      const refund = await instance.payments.refund(order.paymentResult.id, {
+        amount: Math.round(order.totalPrice * 100),
+        notes: {
+          orderId: order._id.toString(),
+          reason: reason || 'Customer cancelled within 12 hours window',
+        },
+      });
+      refundSuccess = true;
+      order.refundStatus = 'processed';
+      order.refundId = refund.id;
+    } catch (err) {
+      console.error('Razorpay refund error:', err.message);
+      order.refundStatus = 'pending';
+    }
+  } else if (order.isPaid) {
+    order.refundStatus = 'pending';
+  } else {
+    order.refundStatus = 'not_applicable';
+  }
+
+  order.orderStatus = 'cancelled';
+  order.cancelledAt = new Date();
+  order.cancellationReason = reason || 'Customer requested cancellation';
+  await order.save();
+
+  res.json({
+    success: true,
+    message: refundSuccess
+      ? 'Order cancelled and refund initiated successfully to your original payment method.'
+      : 'Order cancelled successfully.',
+    order,
+  });
+};
+

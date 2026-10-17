@@ -46,6 +46,14 @@ const orderSchema = new mongoose.Schema({
   isDelivered: { type: Boolean, default: false },
   deliveredAt: Date,
   trackingNumber: String,
+  cancelledAt: Date,
+  cancellationReason: String,
+  refundStatus: {
+    type: String,
+    enum: ['not_applicable', 'pending', 'processed', 'failed'],
+    default: 'not_applicable',
+  },
+  refundId: String,
   notes: String,
 }, { timestamps: true });
 

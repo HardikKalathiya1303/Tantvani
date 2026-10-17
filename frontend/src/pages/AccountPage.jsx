@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package, Heart, MapPin, Settings, LogOut, ShoppingBag,
   Plus, Edit2, Trash2, Home, Briefcase, Check, X, Sparkles,
-  MoreVertical, CheckCircle2, Phone, Mail
+  MoreVertical, CheckCircle2, Phone, Mail, Clock, AlertTriangle,
+  RotateCcw, Info
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import api from '../utils/api';
@@ -110,6 +111,12 @@ function MobileTabNav({ tabs, activeTab, onSelectTab }) {
 export default function AccountPage() {
   const [activeTab, setActiveTab] = useState('orders');
   const { user, logout } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  // Cancellation modal state
+  const [cancellingOrder, setCancellingOrder] = useState(null);
+  const [cancelReason, setCancelReason] = useState('Changed my mind');
+  const [customReason, setCustomReason] = useState('');
 
   if (!user) return <Navigate to="/login" replace />;
 
@@ -119,14 +126,46 @@ export default function AccountPage() {
     enabled: activeTab === 'orders',
   });
 
-  const { data: meData } = useQuery({
-    queryKey: ['me'],
-    queryFn: () => api.get('/auth/me').then(r => r.data),
+  // Use Zustand store user directly — App.jsx already fetches /auth/me on mount
+  const meData = user ? { user } : null;
+
+  const cancelOrderMutation = useMutation({
+    mutationFn: ({ id, reason }) => api.put(`/orders/${id}/cancel`, { reason }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['my-orders'] });
+      toast.success(res.data?.message || 'Order cancelled successfully');
+      setCancellingOrder(null);
+      setCustomReason('');
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Failed to cancel order');
+    },
   });
 
   const handleLogout = async () => {
     await logout();
     toast.success('Logged out successfully');
+  };
+
+  const getCancellationInfo = (order) => {
+    const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
+    const createdAt = new Date(order.createdAt).getTime();
+    const remainingMs = TWELVE_HOURS_MS - (Date.now() - createdAt);
+    const isWithin12Hours = remainingMs > 0;
+    const isTerminal = ['cancelled', 'shipped', 'delivered', 'returned'].includes(order.orderStatus);
+    const canCancel = isWithin12Hours && !isTerminal;
+
+    const hours = Math.max(0, Math.floor(remainingMs / (1000 * 60 * 60)));
+    const minutes = Math.max(0, Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60)));
+
+    return {
+      canCancel,
+      isWithin12Hours,
+      isTerminal,
+      hours,
+      minutes,
+      remainingText: `${hours}h ${minutes}m`,
+    };
   };
 
   return (
@@ -216,47 +255,114 @@ export default function AccountPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {ordersData?.orders?.map(order => (
-                      <div key={order._id} className="bg-white border border-neutral-200 rounded-2xl p-5 sm:p-6 shadow-xs">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-neutral-100 gap-2">
-                          <div>
-                            <span className="font-jost text-xs font-bold text-black uppercase tracking-wider">
-                              Order #{order._id.slice(-8).toUpperCase()}
-                            </span>
-                            <p className="font-karla text-xs text-neutral-500 mt-0.5">
-                              Placed on {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {ordersData?.orders?.map(order => {
+                      const { canCancel, isWithin12Hours, remainingText } = getCancellationInfo(order);
+
+                      return (
+                        <div key={order._id} className="bg-white border border-neutral-200 rounded-2xl p-5 sm:p-6 shadow-xs">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-neutral-100 gap-2">
+                            <div>
+                              <span className="font-jost text-xs font-bold text-black uppercase tracking-wider">
+                                Order #{order._id.slice(-8).toUpperCase()}
+                              </span>
+                              <p className="font-karla text-xs text-neutral-500 mt-0.5">
+                                Placed on {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} at {new Date(order.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {order.isPaid && (
+                                <span className="font-jost text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                  Paid ({order.paymentMethod?.toUpperCase()})
+                                </span>
+                              )}
+                              <span className={`self-start sm:self-auto font-jost text-[10px] font-bold tracking-wider uppercase px-3 py-1 rounded-full ${STATUS_STYLE[order.orderStatus] || 'bg-neutral-100 text-neutral-700'}`}>
+                                {order.orderStatus}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="py-4 flex gap-3 overflow-x-auto scrollbar-hide">
+                            {order.orderItems.map(item => (
+                              <div key={item._id} className="shrink-0 flex items-center gap-3 p-2 rounded-xl bg-neutral-50 border border-neutral-200/60 min-w-[200px]">
+                                <div className="w-12 h-16 rounded-lg overflow-hidden bg-neutral-100 shrink-0">
+                                  {item.image && <img src={item.image} alt={item.name} className="w-full h-full object-cover" />}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-jost text-xs font-bold text-black truncate">{item.name}</p>
+                                  <p className="font-karla text-[11px] text-neutral-500 mt-0.5">Qty: {item.quantity}</p>
+                                  <p className="font-jost text-xs font-bold text-black mt-0.5">₹{(item.price * item.quantity).toLocaleString('en-IN')}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
+                            <p className="font-karla text-xs text-neutral-500">
+                              {order.orderItems.length} {order.orderItems.length === 1 ? 'Item' : 'Items'}
+                            </p>
+                            <p className="font-jost text-base font-bold text-black">
+                              Total: ₹{order.totalPrice.toLocaleString('en-IN')}
                             </p>
                           </div>
-                          <span className={`self-start sm:self-auto font-jost text-[10px] font-bold tracking-wider uppercase px-3 py-1 rounded-full ${STATUS_STYLE[order.orderStatus] || 'bg-neutral-100 text-neutral-700'}`}>
-                            {order.orderStatus}
-                          </span>
-                        </div>
 
-                        <div className="py-4 flex gap-3 overflow-x-auto scrollbar-hide">
-                          {order.orderItems.map(item => (
-                            <div key={item._id} className="shrink-0 flex items-center gap-3 p-2 rounded-xl bg-neutral-50 border border-neutral-200/60 min-w-[200px]">
-                              <div className="w-12 h-16 rounded-lg overflow-hidden bg-neutral-100 shrink-0">
-                                {item.image && <img src={item.image} alt={item.name} className="w-full h-full object-cover" />}
+                          {/* Cancellation Banner & Actions */}
+                          {order.orderStatus === 'cancelled' ? (
+                            <div className="mt-4 pt-3 border-t border-neutral-100 bg-red-50/60 border border-red-100 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className="text-xs font-karla">
+                                <span className="font-jost font-bold text-red-700 uppercase tracking-wider block">
+                                  Order Cancelled
+                                </span>
+                                <p className="text-neutral-600 mt-0.5">
+                                  {order.cancellationReason ? `Reason: ${order.cancellationReason}` : 'Cancelled by customer'}
+                                  {order.cancelledAt && ` on ${new Date(order.cancelledAt).toLocaleDateString('en-IN')}`}
+                                </p>
                               </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="font-jost text-xs font-bold text-black truncate">{item.name}</p>
-                                <p className="font-karla text-[11px] text-neutral-500 mt-0.5">Qty: {item.quantity}</p>
-                                <p className="font-jost text-xs font-bold text-black mt-0.5">₹{(item.price * item.quantity).toLocaleString('en-IN')}</p>
-                              </div>
+                              {order.isPaid && (
+                                <div className="text-xs font-karla self-start sm:self-auto">
+                                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-medium ${
+                                    order.refundStatus === 'processed'
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                      : 'bg-amber-100 text-amber-800 border border-amber-200'
+                                  }`}>
+                                    <RotateCcw className="w-3 h-3" />
+                                    {order.refundStatus === 'processed' ? '100% Refund Initiated' : 'Refund In Review'}
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                          ))}
+                          ) : canCancel ? (
+                            <div className="mt-4 pt-3 border-t border-neutral-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50/50 border border-amber-200/60 rounded-xl p-3">
+                              <div className="flex items-start sm:items-center gap-2">
+                                <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
+                                <div className="text-xs font-karla text-neutral-700">
+                                  <span className="font-bold text-amber-900">12-Hour Cancellation Window Active:</span>{' '}
+                                  <span>Closes in <strong>{remainingText}</strong></span>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setCancellingOrder(order);
+                                  setCancelReason('Changed my mind');
+                                  setCustomReason('');
+                                }}
+                                className="self-end sm:self-auto px-3 py-1.5 text-neutral-400 hover:text-neutral-600 font-karla text-[11px] tracking-wide transition-colors flex items-center gap-1 cursor-pointer"
+                              >
+                                <X className="w-3 h-3" />
+                                Cancel Order
+                              </button>
+                            </div>
+                          ) : ['pending', 'confirmed', 'processing'].includes(order.orderStatus) && !isWithin12Hours ? (
+                            <div className="mt-4 pt-3 border-t border-neutral-100 flex items-center justify-between text-xs font-karla text-neutral-400">
+                              <span className="flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5 text-neutral-400" />
+                                12-hour cancellation window has expired
+                              </span>
+                              <span className="text-[11px] text-neutral-400">Order in processing</span>
+                            </div>
+                          ) : null}
                         </div>
-
-                        <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
-                          <p className="font-karla text-xs text-neutral-500">
-                            {order.orderItems.length} {order.orderItems.length === 1 ? 'Item' : 'Items'}
-                          </p>
-                          <p className="font-jost text-base font-bold text-black">
-                            Total: ₹{order.totalPrice.toLocaleString('en-IN')}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </motion.div>
@@ -334,6 +440,159 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+      {/* CANCELLATION CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {cancellingOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-xs"
+              onClick={() => !cancelOrderMutation.isPending && setCancellingOrder(null)}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden z-10"
+            >
+              {/* Modal Header */}
+              <div className="p-5 sm:p-6 pb-4 border-b border-neutral-100 flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600 shrink-0">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-jost text-base sm:text-lg font-bold text-black tracking-tight">
+                      Cancel Order #{cancellingOrder._id.slice(-8).toUpperCase()}
+                    </h3>
+                    <p className="font-karla text-xs text-neutral-500 mt-0.5">
+                      Within 12-hour cancellation window
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={cancelOrderMutation.isPending}
+                  onClick={() => setCancellingOrder(null)}
+                  className="p-1 rounded-lg text-neutral-400 hover:text-black hover:bg-neutral-100 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-5 sm:p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                {/* 12-hour limit badge */}
+                <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 text-xs font-karla text-amber-900 flex items-start gap-2.5">
+                  <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold">12-Hour Cancellation Policy</p>
+                    <p className="text-amber-800 text-[11px] mt-0.5 leading-relaxed">
+                      Handloom saree orders can only be cancelled within 12 hours of placement. Once prepared and dispatched, cancellations are not permitted.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Refund notification for paid orders */}
+                {cancellingOrder.isPaid && (
+                  <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 text-xs font-karla text-emerald-900 flex items-start gap-2.5">
+                    <RotateCcw className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold">100% Full Refund Guarantee</p>
+                      <p className="text-emerald-800 text-[11px] mt-0.5 leading-relaxed">
+                        Full amount of <strong>₹{cancellingOrder.totalPrice.toLocaleString('en-IN')}</strong> will be refunded to your original payment method.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Reason Selection */}
+                <div>
+                  <label className="block font-jost text-xs font-bold uppercase tracking-wider text-neutral-700 mb-2">
+                    Reason for Cancellation <span className="text-red-500">*</span>
+                  </label>
+                  <div className="space-y-2">
+                    {[
+                      'Changed my mind',
+                      'Ordered wrong color or saree weave',
+                      'Need to change delivery address',
+                      'Delivery will take longer than expected',
+                      'Other reason',
+                    ].map((reasonOption) => (
+                      <label
+                        key={reasonOption}
+                        className={`flex items-center gap-3 p-3 rounded-xl border text-xs font-karla cursor-pointer transition-all ${
+                          cancelReason === reasonOption
+                            ? 'border-black bg-neutral-50 font-medium text-black'
+                            : 'border-neutral-200 hover:border-neutral-300 text-neutral-600'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="cancelReason"
+                          value={reasonOption}
+                          checked={cancelReason === reasonOption}
+                          onChange={() => setCancelReason(reasonOption)}
+                          className="w-4 h-4 accent-black text-black"
+                        />
+                        <span>{reasonOption}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  {cancelReason === 'Other reason' && (
+                    <input
+                      type="text"
+                      placeholder="Please specify your reason..."
+                      value={customReason}
+                      onChange={(e) => setCustomReason(e.target.value)}
+                      className="mt-2.5 w-full px-3.5 py-2.5 text-xs font-karla bg-neutral-50 border border-neutral-300 rounded-xl focus:bg-white focus:border-black outline-none transition-all"
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 sm:p-6 pt-3 bg-neutral-50/70 border-t border-neutral-100 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  disabled={cancelOrderMutation.isPending}
+                  onClick={() => setCancellingOrder(null)}
+                  className="px-4 py-2.5 rounded-xl border border-neutral-300 hover:bg-neutral-100 text-xs font-jost font-bold uppercase tracking-wider text-neutral-700 transition-colors"
+                >
+                  Keep Order
+                </button>
+                <button
+                  type="button"
+                  disabled={cancelOrderMutation.isPending}
+                  onClick={() => {
+                    const finalReason = cancelReason === 'Other reason' && customReason.trim()
+                      ? customReason.trim()
+                      : cancelReason;
+                    cancelOrderMutation.mutate({
+                      id: cancellingOrder._id,
+                      reason: finalReason,
+                    });
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-jost font-bold uppercase tracking-wider transition-all shadow-xs flex items-center gap-2"
+                >
+                  {cancelOrderMutation.isPending ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Cancelling...</span>
+                    </>
+                  ) : (
+                    <span>Confirm Cancellation</span>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -541,13 +800,13 @@ function AddressManager({ meData }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_ADDR);
-  const qc = useQueryClient();
+  const fetchMe = useAuthStore(s => s.fetchMe);
   const addresses = meData?.user?.addresses || [];
 
   const addMutation = useMutation({
     mutationFn: (data) => api.post('/auth/address', data),
     onSuccess: () => {
-      qc.invalidateQueries(['me']);
+      fetchMe();
       setIsEditing(false);
       setEditingId(null);
       setForm(EMPTY_ADDR);
@@ -559,7 +818,7 @@ function AddressManager({ meData }) {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => api.put(`/auth/address/${id}`, data),
     onSuccess: () => {
-      qc.invalidateQueries(['me']);
+      fetchMe();
       setIsEditing(false);
       setEditingId(null);
       setForm(EMPTY_ADDR);
@@ -571,7 +830,7 @@ function AddressManager({ meData }) {
   const deleteMutation = useMutation({
     mutationFn: (id) => api.delete(`/auth/address/${id}`),
     onSuccess: () => {
-      qc.invalidateQueries(['me']);
+      fetchMe();
       toast.success('Address deleted');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to delete address'),
@@ -580,7 +839,7 @@ function AddressManager({ meData }) {
   const setDefaultMutation = useMutation({
     mutationFn: (id) => api.put(`/auth/address/${id}/default`),
     onSuccess: () => {
-      qc.invalidateQueries(['me']);
+      fetchMe();
       toast.success('Default address updated');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to set default address'),

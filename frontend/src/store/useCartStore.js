@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../utils/api';
 
+// Dedup guard — prevents concurrent duplicate syncWithBackend calls
+let _syncPromise = null;
+
 // Helper to normalize server cart item structure into flat product object with quantity
 const formatServerCartItems = (serverCart) => {
   if (!serverCart || !Array.isArray(serverCart.items)) return [];
@@ -140,27 +143,34 @@ export const useCartStore = create(
       // Sync guest local storage items to server upon user login
       syncWithBackend: async () => {
         if (!isUserLoggedIn()) return;
-        const localItems = get().items;
-
-        set({ isLoading: true });
-        try {
-          if (localItems.length > 0) {
-            const { data } = await api.post('/cart/sync', { localItems });
+        // If already syncing, return existing promise (dedup)
+        if (_syncPromise) return _syncPromise;
+        _syncPromise = (async () => {
+          const localItems = get().items;
+          set({ isLoading: true });
+          try {
+            if (localItems.length > 0) {
+              const { data } = await api.post('/cart/sync', { localItems });
+              if (data?.cart) {
+                set({ items: formatServerCartItems(data.cart), isLoading: false });
+                return;
+              }
+            }
+            // If no local items, just fetch server cart
+            const { data } = await api.get('/cart');
             if (data?.cart) {
               set({ items: formatServerCartItems(data.cart), isLoading: false });
-              return;
             }
+          } catch (err) {
+            console.error('Failed to sync cart with server:', err);
+            set({ isLoading: false });
+          } finally {
+            _syncPromise = null;
           }
-          // If no local items, just fetch server cart
-          const { data } = await api.get('/cart');
-          if (data?.cart) {
-            set({ items: formatServerCartItems(data.cart), isLoading: false });
-          }
-        } catch (err) {
-          console.error('Failed to sync cart with server:', err);
-          set({ isLoading: false });
-        }
+        })();
+        return _syncPromise;
       },
+
 
       get total() {
         return get().items.reduce(
