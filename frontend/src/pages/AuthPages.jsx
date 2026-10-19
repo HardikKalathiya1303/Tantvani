@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, Sparkles } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import toast from 'react-hot-toast';
+import { trackEvent } from '../utils/analytics';
 
 function AuthLayout({ children, title, subtitle }) {
   return (
@@ -58,10 +59,13 @@ export function LoginPage() {
     e.preventDefault();
     try {
       await login(form.email, form.password);
+      trackEvent('login', { method: 'credentials', redirect_target: redirect });
       toast.success('Welcome back!');
       navigate(redirect);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed');
+      const msg = err.response?.data?.message || 'Login failed';
+      trackEvent('login_failed', { reason: msg });
+      toast.error(msg);
     }
   };
 
@@ -134,15 +138,19 @@ export function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.password !== form.confirm) {
+      trackEvent('sign_up_failed', { reason: 'Password mismatch' });
       toast.error('Passwords do not match');
       return;
     }
     try {
       await reg(form.name, form.email, form.password, form.phone);
+      trackEvent('sign_up', { method: 'credentials', redirect_target: redirect });
       toast.success('Welcome to Tantvani!');
       navigate(redirect);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Registration failed');
+      const msg = err.response?.data?.message || 'Registration failed';
+      trackEvent('sign_up_failed', { reason: msg });
+      toast.error(msg);
     }
   };
 

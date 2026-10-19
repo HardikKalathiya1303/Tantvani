@@ -66,6 +66,7 @@ app.use('/api/categories', require('./routes/categories'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/banners', require('./routes/banners'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/exit-intent', require('./routes/exitIntent'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Tags, ShoppingCart, Users, Image, LogOut, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Package, Tags, ShoppingCart, Users, Image, LogOut, BarChart3, Sparkles } from 'lucide-react';
 import { useAdminStore } from '../store/useAdminStore';
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { href: '/banners', label: 'Banners', Icon: Image },
   { href: '/users', label: 'Users', Icon: Users },
   { href: '/analytics', label: 'Analytics', Icon: BarChart3 },
+  { href: '/exit-intent', label: 'Exit Popup', Icon: Sparkles },
 ];
 
 export default function Sidebar() {

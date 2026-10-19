@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,6 +7,7 @@ import ProductGrid from '../components/home/ProductGrid';
 import FilterSidebar from '../components/collections/FilterSidebar';
 import MobileFilterDrawer from '../components/collections/MobileFilterDrawer';
 import api from '../utils/api';
+import { trackCategoryClick, trackEvent } from '../utils/analytics';
 
 // Custom 4-Column Grid Icon (4x4 / 4 vertical columns)
 function Grid4Icon({ className }) {
@@ -68,12 +69,30 @@ export default function CollectionsPage() {
   });
 
   const updateFilter = (key, val) => {
+    if (val && (key === 'category' || key === 'fabric' || key === 'occasion')) {
+      const label = key === 'category'
+        ? (catsData?.categories?.find(c => c._id === val)?.name || val)
+        : val;
+      trackCategoryClick(label, `Filter ${key}`);
+    }
     const p = new URLSearchParams(searchParams);
     val ? p.set(key, val) : p.delete(key);
     p.delete('page');
     setSearchParams(p);
     setPage(1);
   };
+
+  useEffect(() => {
+    if (params.category && catsData?.categories) {
+      const cat = catsData.categories.find(c => c._id === params.category);
+      if (cat?.name) {
+        trackEvent('view_item_list', {
+          item_list_name: cat.name,
+          category_name: cat.name,
+        });
+      }
+    }
+  }, [params.category, catsData]);
 
   const clearAll = () => {
     setSearchParams({});

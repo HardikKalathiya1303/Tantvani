@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ZoomIn, ChevronLeft, ChevronRight, Sparkles, Maximize2, Zap } from 'lucide-react';
 import { getHdImageUrl, preloadHdImage } from '../../utils/imageHelper';
+import { trackEvent } from '../../utils/analytics';
 
 export default function ProductImageGallery({
   product,
@@ -66,6 +67,15 @@ export default function ProductImageGallery({
     setActiveImage((prev) => (prev - 1 + images.length) % images.length);
   };
 
+  const handleOpenZoom = () => {
+    trackEvent('product_zoom_opened', {
+      product_id: product?._id,
+      product_name: product?.name,
+      active_image: activeImage,
+    });
+    setShowZoom(true);
+  };
+
   return (
     <div className="space-y-4 select-none">
       {/* Main Image Container */}
@@ -75,7 +85,7 @@ export default function ProductImageGallery({
         onMouseEnter={handleMouseEnter}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        onClick={() => setShowZoom(true)}
+        onClick={handleOpenZoom}
       >
         <AnimatePresence mode="wait">
           <motion.img
@@ -191,7 +201,14 @@ export default function ProductImageGallery({
           {images.map((img, i) => (
             <button
               key={i}
-              onClick={() => setActiveImage(i)}
+              onClick={() => {
+                trackEvent('product_gallery_click', {
+                  product_id: product?._id,
+                  product_name: product?.name,
+                  image_index: i + 1,
+                });
+                setActiveImage(i);
+              }}
               className={`aspect-square overflow-hidden rounded-lg border-2 transition-all duration-200 relative group ${
                 activeImage === i
                   ? 'border-gold shadow-md ring-2 ring-gold/20 scale-[1.02]'

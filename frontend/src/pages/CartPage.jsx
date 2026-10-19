@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -16,10 +16,18 @@ import {
   Lock,
   ChevronRight,
   Heart,
+  MessageCircle,
 } from 'lucide-react';
 import { useCartStore } from '../store/useCartStore';
 import { useAuthStore } from '../store/useAuthStore';
 import toast from 'react-hot-toast';
+import RecentlyViewed from '../components/common/RecentlyViewed';
+import {
+  trackViewCart,
+  trackRemoveFromCart,
+  trackCouponAttempt,
+  trackEvent,
+} from '../utils/analytics';
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart } = useCartStore();
@@ -45,6 +53,13 @@ export default function CartPage() {
   const tax = Math.round((subtotal - couponDiscount) * 0.05);
   const total = Math.max(0, subtotal - couponDiscount + shipping + tax);
 
+  // Track shopping bag view
+  useEffect(() => {
+    if (items && items.length > 0) {
+      trackViewCart(items, subtotal);
+    }
+  }, []);
+
   const handleApplyCoupon = (e) => {
     e.preventDefault();
     const code = couponCode.trim().toUpperCase();
@@ -54,14 +69,23 @@ export default function CartPage() {
     setTimeout(() => {
       setIsApplyingCoupon(false);
       if (code === 'TANTVANI10' || code === 'FIRST10') {
+        const discountVal = Math.round(subtotal * 0.1);
         setAppliedCoupon({ code, value: 10, type: 'percent' });
+        trackCouponAttempt({ code, success: true, orderValue: subtotal, discountAmount: discountVal });
         toast.success(`Coupon "${code}" applied! 10% discount added.`);
         setCouponCode('');
-      } else if (code === 'ROYAL2000' && subtotal >= 20000) {
-        setAppliedCoupon({ code, value: 2000, type: 'flat' });
-        toast.success(`Coupon "${code}" applied! ₹2,000 flat discount added.`);
-        setCouponCode('');
+      } else if (code === 'ROYAL2000') {
+        if (subtotal >= 20000) {
+          setAppliedCoupon({ code, value: 2000, type: 'flat' });
+          trackCouponAttempt({ code, success: true, orderValue: subtotal, discountAmount: 2000 });
+          toast.success(`Coupon "${code}" applied! ₹2,000 flat discount added.`);
+          setCouponCode('');
+        } else {
+          trackCouponAttempt({ code, success: false, reason: 'Minimum order ₹20,000 not met', orderValue: subtotal });
+          toast.error('ROYAL2000 requires minimum order value of ₹20,000');
+        }
       } else {
+        trackCouponAttempt({ code, success: false, reason: 'Invalid or expired code', orderValue: subtotal });
         toast.error('Invalid or expired coupon code');
       }
     }, 400);
@@ -74,9 +98,11 @@ export default function CartPage() {
 
   const handleCheckout = () => {
     if (!user) {
+      trackEvent('auth_gate_prompted', { origin: 'cart_checkout', cart_value: total });
       navigate('/login?redirect=/checkout');
       return;
     }
+    trackEvent('proceed_to_checkout_click', { cart_value: total, item_count: items.length });
     navigate('/checkout');
   };
 
@@ -253,6 +279,7 @@ export default function CartPage() {
                           {/* Delete Item Button */}
                           <button
                             onClick={() => {
+                              trackRemoveFromCart(item);
                               removeItem(item._id);
                               toast.success('Removed from bag');
                             }}
@@ -448,6 +475,20 @@ export default function CartPage() {
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </button>
 
+              {/* WhatsApp Cart Assistance for Order Drop-off Prevention */}
+              <a
+                href={`https://wa.me/919999999999?text=${encodeURIComponent(
+                  `Hello Tantvani, I have ${items.length} saree(s) in my bag worth ₹${total.toLocaleString('en-IN')}: ${items.map((i) => i.name).join(', ')}. Can you assist me with completing this order?`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackEvent('whatsapp_cart_inquiry', { items_count: items.length, cart_value: total })}
+                className="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-jost text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-600" />
+                <span>Need Help? Chat on WhatsApp</span>
+              </a>
+
               {/* Trust Badges */}
               <div className="pt-2 grid grid-cols-3 gap-2 text-center border-t border-neutral-100">
                 <div className="space-y-1">
@@ -474,6 +515,11 @@ export default function CartPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Recently Viewed Sarees */}
+        <div className="mt-12 sm:mt-16">
+          <RecentlyViewed title="You Also Explored These Handloom Sarees" />
         </div>
       </div>
     </div>

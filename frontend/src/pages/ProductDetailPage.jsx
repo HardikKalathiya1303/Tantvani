@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ChevronRight, Sparkles, ArrowRight } from 'lucide-react';
@@ -6,6 +6,9 @@ import { useCartStore } from '../store/useCartStore';
 import { useAuthStore } from '../store/useAuthStore';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+import { trackViewItem, trackSelectItem, trackEvent } from '../utils/analytics';
+import { addToRecentlyViewed } from '../utils/recentlyViewed';
+import RecentlyViewed from '../components/common/RecentlyViewed';
 import ProductImageGallery from '../components/product/ProductImageGallery';
 import ProductInfoSection from '../components/product/ProductInfoSection';
 import ProductTabs from '../components/product/ProductTabs';
@@ -28,6 +31,37 @@ export default function ProductDetailPage() {
     queryKey: ['product', slug],
     queryFn: () => api.get(`/products/${slug}`).then((r) => r.data),
   });
+
+  useEffect(() => {
+    if (data?.product) {
+      trackViewItem(data.product);
+      addToRecentlyViewed(data.product);
+    }
+  }, [data?.product]);
+
+  // Track how deeply users inspect the saree page (50% fabric specs, 90% reviews)
+  useEffect(() => {
+    if (!data?.product?.name) return;
+    let tracked50 = false;
+    let tracked90 = false;
+
+    const handleScroll = () => {
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (scrollHeight <= 0) return;
+      const scrollPct = (window.scrollY / scrollHeight) * 100;
+      if (scrollPct >= 50 && !tracked50) {
+        tracked50 = true;
+        trackEvent('product_scroll_50_specs', { product_name: data.product.name, product_id: data.product._id });
+      }
+      if (scrollPct >= 85 && !tracked90) {
+        tracked90 = true;
+        trackEvent('product_scroll_85_reviews', { product_name: data.product.name, product_id: data.product._id });
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [data?.product?._id, data?.product?.name]);
 
   const categoryId = data?.product?.category?._id;
 
@@ -216,6 +250,7 @@ export default function ProductDetailPage() {
                   <Link
                     key={rel._id}
                     to={`/product/${rel.slug}`}
+                    onClick={() => trackSelectItem(rel, 'Related Sarees')}
                     className="group block rounded-xl overflow-hidden bg-white border border-neutral-200/80 hover:border-gold/50 hover:shadow-lg transition-all duration-300"
                   >
                     <div className="relative aspect-portrait overflow-hidden bg-neutral-100">
@@ -249,6 +284,9 @@ export default function ProductDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Recently Viewed Sarees Carousel */}
+      <RecentlyViewed currentProductId={data?.product?._id} />
 
       {/* Full-Screen Deep Zoom Modal */}
       <ProductZoomModal

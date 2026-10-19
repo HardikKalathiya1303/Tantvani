@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../utils/api';
+import { trackCategoryClick } from '../../utils/analytics';
 
 const FALLBACK = [
   { name: 'Banarasi Sarees', slug: 'banarasi', image: 'https://images.unsplash.com/photo-1604014237800-1c9102c219da?q=80&w=800&auto=format&fit=crop' },
@@ -70,7 +71,11 @@ export default function FeaturedCategories() {
                 key={cat._id || cat.slug || i}
                 className="flex-shrink-0 flex flex-col items-center text-center group cursor-pointer"
               >
-                <Link to={href} className="flex flex-col items-center group">
+                <Link
+                  to={href}
+                  onClick={() => trackCategoryClick(catName, 'Home Featured Categories')}
+                  className="flex flex-col items-center group"
+                >
                   {/* Circle Image Wrapper with Theme Color Border */}
                   <div className="p-1 sm:p-1.5 rounded-full border-2 border-gold/70 group-hover:border-wine transition-all duration-300 shadow-md group-hover:shadow-xl group-hover:scale-105 bg-white mb-2">
                     <div className="w-28 h-28 sm:w-36 sm:h-36 lg:w-40 lg:h-40 rounded-full overflow-hidden relative bg-wine-darker/10">

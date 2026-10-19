@@ -7,6 +7,8 @@ import { useCartStore } from './store/useCartStore';
 import Layout from './components/layout/Layout';
 import ScrollToTop from './components/ScrollToTop';
 import PageTransition from './components/PageTransition';
+import ExitIntentModal from './components/common/ExitIntentModal';
+import { identifyUser } from './utils/analytics';
 
 // Lazy loaded page components
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -55,6 +57,7 @@ export default function App() {
         const user = useAuthStore.getState().user;
         if (user) {
           queryClient.setQueryData(['me'], { user });
+          identifyUser(user);
         }
       });
       syncWithBackend();
@@ -64,11 +67,20 @@ export default function App() {
     }
   }, [token, fetchMe, syncWithBackend, queryClient]);
 
+  // If user already in local storage at startup, identify immediately
+  useEffect(() => {
+    const user = useAuthStore.getState().user;
+    if (user) {
+      identifyUser(user);
+    }
+  }, []);
+
 
 
   return (
     <Layout>
       <ScrollToTop />
+      <ExitIntentModal />
       <AnimatePresence mode="wait">
         <Suspense fallback={<PageLoader />}>
           <Routes location={location} key={location.pathname}>

@@ -9,6 +9,7 @@ import {
 import { useAuthStore } from '../../../store/useAuthStore';
 import api from '../../../utils/api';
 import toast from 'react-hot-toast';
+import { trackSearchQuery } from '../../../utils/analytics';
 
 // Curated realistic engagement counts for Instagram-style explore grid
 const DUMMY_VIEWS = [
@@ -73,6 +74,15 @@ export default function InstagramSearchModal({ isOpen, onClose }) {
   });
 
   const rawProducts = productsData?.products || [];
+
+  // Track search queries & identify missing products (0 results)
+  useEffect(() => {
+    if (!activeSearch || isLoading) return;
+    const timer = setTimeout(() => {
+      trackSearchQuery(activeSearch, rawProducts.length);
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [activeSearch, isLoading, rawProducts.length]);
 
   // When no search active, randomize the products order every time opened / refreshed like Instagram
   const products = useMemo(() => {

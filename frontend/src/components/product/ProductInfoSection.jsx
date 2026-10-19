@@ -17,6 +17,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { trackCategoryClick, trackStylistInquiry } from '../../utils/analytics';
 
 export default function ProductInfoSection({
   product,
@@ -90,6 +91,7 @@ export default function ProductInfoSection({
         {product.category && (
           <Link
             to={`/collections?category=${product.category._id}`}
+            onClick={() => trackCategoryClick(product.category.name, 'Product Detail Eyebrow')}
             className="font-jost text-xs tracking-[0.22em] uppercase font-bold text-gold-dark hover:text-wine transition-colors flex items-center gap-1.5"
           >
             <Sparkles className="w-3.5 h-3.5 text-gold-dark" />
@@ -357,6 +359,7 @@ export default function ProductInfoSection({
             href="https://wa.me/919999999999?text=Hello%20Tantvani,%20I%20would%20like%20styling%20advice%20for%20this%20saree"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => trackStylistInquiry(product)}
             className="inline-flex items-center gap-1 font-jost text-xs tracking-wider uppercase font-bold text-emerald-700 hover:text-emerald-900 underline shrink-0"
           >
             <span>Chat Stylist</span>

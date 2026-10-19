@@ -5,11 +5,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import App from './App.jsx'
 import './styles/index.css'
+import { initRageClickDetection } from './utils/analytics'
 
 // Disable browser's native scroll restoration — let ScrollToTop handle it
 if ('scrollRestoration' in window.history) {
   window.history.scrollRestoration = 'manual';
 }
+
+// Start global rage-click detection for unresponsiveness & frustration tracking
+initRageClickDetection();
 
 const queryClient = new QueryClient({
   defaultOptions: {

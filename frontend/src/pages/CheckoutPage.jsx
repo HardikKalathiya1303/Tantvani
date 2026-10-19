@@ -12,6 +12,16 @@ import { useCartStore } from '../store/useCartStore';
 import { useAuthStore } from '../store/useAuthStore';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+import {
+  trackBeginCheckout,
+  trackPurchase,
+  trackAddShippingInfo,
+  trackAddPaymentInfo,
+  trackCouponAttempt,
+  trackFormValidationError,
+  trackPaymentCancelled,
+  trackPaymentFailed,
+} from '../utils/analytics';
 
 const loadRazorpayScript = () =>
   new Promise(resolve => {
@@ -125,6 +135,13 @@ export default function CheckoutPage() {
   const grandTotal = discountedSubtotal + shipping + tax;
   const totalSavings = productDiscount + couponDiscount + (shipping === 0 && subtotal >= 2000 ? 99 : 0);
 
+  // Track checkout initiation
+  useEffect(() => {
+    if (items && items.length > 0) {
+      trackBeginCheckout(items, grandTotal);
+    }
+  }, []);
+
   // Add Address Mutation
   const addAddressMutation = useMutation({
     mutationFn: (newAddr) => api.post('/auth/address', newAddr),
@@ -228,6 +245,7 @@ export default function CheckoutPage() {
     },
     onSuccess: ({ data }) => {
       setOrderId(data.order._id);
+      trackPurchase(data.order);
       clearCart();
       setStep(2);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -286,17 +304,20 @@ export default function CheckoutPage() {
 
     for (const { key, label } of required) {
       if (!addressForm[key]?.toString().trim()) {
+        trackFormValidationError({ formName: 'shipping_address', field: key, errorMessage: `Missing ${label}` });
         toast.error(`Please enter ${label}`);
         return false;
       }
     }
 
     if (addressForm.phone.replace(/\D/g, '').length < 10) {
+      trackFormValidationError({ formName: 'shipping_address', field: 'phone', errorMessage: 'Invalid mobile number length' });
       toast.error('Please enter a valid 10-digit mobile number');
       return false;
     }
 
     if (addressForm.pincode.replace(/\D/g, '').length !== 6) {
+      trackFormValidationError({ formName: 'shipping_address', field: 'pincode', errorMessage: 'Invalid PIN code length' });
       toast.error('Please enter a valid 6-digit PIN code');
       return false;
     }
@@ -323,6 +344,12 @@ export default function CheckoutPage() {
       }
     }
 
+    trackAddShippingInfo({
+      shippingTier: 'Express Delivery',
+      items,
+      value: grandTotal,
+    });
+
     setStep(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -336,26 +363,33 @@ export default function CheckoutPage() {
     }
 
     if (code === 'TANTVANI10') {
+      const discountVal = Math.round((subtotal * 10) / 100);
       setAppliedCoupon({ code, value: 10, type: 'percentage', label: '10% Handloom Welcome Discount' });
+      trackCouponAttempt({ code, success: true, orderValue: grandTotal, discountAmount: discountVal });
       toast.success('Coupon "TANTVANI10" applied! 10% discount added.');
       setCouponCode('');
     } else if (code === 'ROYAL2000') {
       if (subtotal < 20000) {
+        trackCouponAttempt({ code, success: false, reason: 'Order below ₹20,000 threshold', orderValue: grandTotal });
         toast.error('ROYAL2000 requires a minimum order value of ₹20,000');
         return;
       }
       setAppliedCoupon({ code, value: 2000, type: 'flat', label: '₹2,000 Royal Wedding Discount' });
+      trackCouponAttempt({ code, success: true, orderValue: grandTotal, discountAmount: 2000 });
       toast.success('Coupon "ROYAL2000" applied! ₹2,000 flat discount added.');
       setCouponCode('');
     } else if (code === 'HERITAGE500') {
       if (subtotal < 5000) {
+        trackCouponAttempt({ code, success: false, reason: 'Order below ₹5,000 threshold', orderValue: grandTotal });
         toast.error('HERITAGE500 requires a minimum order value of ₹5,000');
         return;
       }
       setAppliedCoupon({ code, value: 500, type: 'flat', label: '₹500 Heritage Artisan Discount' });
+      trackCouponAttempt({ code, success: true, orderValue: grandTotal, discountAmount: 500 });
       toast.success('Coupon "HERITAGE500" applied! ₹500 discount added.');
       setCouponCode('');
     } else {
+      trackCouponAttempt({ code, success: false, reason: 'Invalid or expired coupon', orderValue: grandTotal });
       toast.error('Invalid or expired coupon code');
     }
   };
@@ -368,6 +402,12 @@ export default function CheckoutPage() {
   const [placing, setPlacing] = useState(false);
 
   const handlePlaceOrder = async () => {
+    trackAddPaymentInfo({
+      paymentType: paymentMethod,
+      items,
+      value: grandTotal,
+    });
+
     if (paymentMethod === 'cod') {
       orderMutation.mutate();
       return;
@@ -377,6 +417,7 @@ export default function CheckoutPage() {
     try {
       const loaded = await loadRazorpayScript();
       if (!loaded) {
+        trackPaymentFailed({ paymentMethod: 'online', amount: grandTotal, reason: 'Razorpay SDK failed to load' });
         toast.error('Could not load payment gateway. Please try again.');
         setPlacing(false);
         return;
@@ -387,7 +428,9 @@ export default function CheckoutPage() {
         const res = await api.post('/orders/create-razorpay-order', { amount: grandTotal });
         rzpData = res.data;
       } catch (err) {
-        toast.error('Payment initiation failed: ' + (err.response?.data?.message || err.message));
+        const msg = err.response?.data?.message || err.message;
+        trackPaymentFailed({ paymentMethod: 'online', amount: grandTotal, reason: msg });
+        toast.error('Payment initiation failed: ' + msg);
         setPlacing(false);
         return;
       }
@@ -431,20 +474,30 @@ export default function CheckoutPage() {
             };
             const { data: orderData } = await api.post('/orders/verify-payment', orderPayload);
             setOrderId(orderData.order._id);
+            trackPurchase(orderData.order);
             clearCart();
             setStep(2);
             window.scrollTo({ top: 0, behavior: 'smooth' });
           } catch {
+            trackPaymentFailed({ paymentMethod: 'online', amount: grandTotal, reason: 'Payment verification failed' });
             toast.error('Payment verification failed. Contact support with your payment ID.');
           }
         },
-        modal: { ondismiss: () => { toast.error('Payment cancelled.'); setPlacing(false); } },
+        modal: {
+          ondismiss: () => {
+            trackPaymentCancelled({ paymentMethod: 'online', amount: grandTotal });
+            toast.error('Payment cancelled.');
+            setPlacing(false);
+          }
+        },
       };
 
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
+      const msg = err.response?.data?.message || err.message;
+      trackPaymentFailed({ paymentMethod: 'online', amount: grandTotal, reason: msg });
+      toast.error(msg || 'Something went wrong. Please try again.');
       setPlacing(false);
     }
   };

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../utils/api';
+import { trackAddToCart } from '../utils/analytics';
 
 // Dedup guard — prevents concurrent duplicate syncWithBackend calls
 let _syncPromise = null;
@@ -61,6 +62,7 @@ export const useCartStore = create(
 
         // 1. Optimistic Local State Update for 0ms lag
         set({ items: updatedItems });
+        trackAddToCart(product, quantity);
 
         // 2. If logged in, sync with Backend API
         if (isUserLoggedIn()) {

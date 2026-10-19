@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { trackCategoryClick } from '../../../utils/analytics';
 
 export default function MobileDrawer({ mobileOpen, setMobileOpen, cats, user, logout }) {
   return (
@@ -57,7 +58,10 @@ export default function MobileDrawer({ mobileOpen, setMobileOpen, cats, user, lo
                     <Link
                       key={c._id}
                       to={`/collections?category=${c._id}`}
-                      onClick={() => setMobileOpen(false)}
+                      onClick={() => {
+                        trackCategoryClick(c.name, 'Mobile Drawer');
+                        setMobileOpen(false);
+                      }}
                       className="block py-2.5 font-karla text-sm text-[#411B1E]/65 hover:text-[#6B2732] transition-colors"
                     >
                       {c.name}

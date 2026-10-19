@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useCartStore } from '../../store/useCartStore';
 import api from '../../utils/api';
+import { trackCategoryClick } from '../../utils/analytics';
 import AnnouncementBar from './Navbar/AnnouncementBar';
 import MobileDrawer from './Navbar/MobileDrawer';
 import InstagramSearchModal from './Navbar/InstagramSearchModal';
@@ -121,6 +122,7 @@ export default function Navbar() {
                           <Link
                             key={c._id}
                             to={`/collections?category=${c._id}`}
+                            onClick={() => trackCategoryClick(c.name, 'Navbar Dropdown')}
                             className="block px-5 py-2.5 text-[11px] font-jost tracking-[0.12em] uppercase text-[#411B1E]/75 hover:text-[#6B2732] hover:bg-[#FBF4E9] transition-colors duration-150"
                           >
                             {c.name}

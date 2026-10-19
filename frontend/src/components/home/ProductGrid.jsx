@@ -5,6 +5,7 @@ import { useCartStore } from '../../store/useCartStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import api from '../../utils/api';
 import { toast } from 'react-hot-toast';
+import { trackSelectItem } from '../../utils/analytics';
 
 const ProductCard = memo(function ProductCard({ product }) {
   const [imgIdx] = useState(0);
@@ -44,7 +45,11 @@ const ProductCard = memo(function ProductCard({ product }) {
   };
 
   return (
-    <Link to={`/product/${product.slug}`} className="group block card-product h-full flex flex-col justify-between rounded-xs overflow-hidden shadow-xs hover:shadow-luxury transition-all duration-300">
+    <Link
+      to={`/product/${product.slug}`}
+      onClick={() => trackSelectItem(product, 'Product Grid')}
+      className="group block card-product h-full flex flex-col justify-between rounded-xs overflow-hidden shadow-xs hover:shadow-luxury transition-all duration-300"
+    >
       <div>
         {/* Card Image */}
         <div className="relative overflow-hidden aspect-[3/4] bg-wine-darker/10 rounded-t-xs">

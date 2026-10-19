@@ -15,6 +15,7 @@ import {
 import { useCartStore } from '../store/useCartStore';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+import { trackSelectItem } from '../utils/analytics';
 
 export default function WishlistPage() {
   const qc = useQueryClient();
@@ -166,7 +167,11 @@ export default function WishlistPage() {
                     <div>
                       {/* Product Image Box */}
                       <div className="relative aspect-portrait bg-neutral-100 overflow-hidden">
-                        <Link to={`/product/${p.slug}`} className="block w-full h-full">
+                        <Link
+                          to={`/product/${p.slug}`}
+                          onClick={() => trackSelectItem(p, 'Wishlist')}
+                          className="block w-full h-full"
+                        >
                           <img
                             src={p.images?.[0]?.url || p.image}
                             alt={p.name}
@@ -201,7 +206,10 @@ export default function WishlistPage() {
                           {p.fabric || p.category?.name || 'Handloom Heritage'}
                         </p>
 
-                        <Link to={`/product/${p.slug}`}>
+                        <Link
+                          to={`/product/${p.slug}`}
+                          onClick={() => trackSelectItem(p, 'Wishlist')}
+                        >
                           <h3 className="font-jost text-sm sm:text-base font-bold text-black group-hover:text-wine transition-colors line-clamp-2 leading-snug">
                             {p.name}
                           </h3>

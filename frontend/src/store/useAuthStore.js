@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../utils/api';
+import { identifyUser } from '../utils/analytics';
 
 // Dedup guard — prevents concurrent duplicate fetchMe calls
 let _fetchMePromise = null;
@@ -15,6 +16,7 @@ export const useAuthStore = create(
       setAuth: (user, token) => {
         localStorage.setItem('token', token);
         set({ user, token });
+        identifyUser(user);
       },
 
       login: async (email, password) => {
@@ -23,6 +25,7 @@ export const useAuthStore = create(
           const { data } = await api.post('/auth/login', { email, password });
           localStorage.setItem('token', data.token);
           set({ user: data.user, token: data.token, isLoading: false });
+          identifyUser(data.user);
           return data;
         } catch (err) {
           set({ isLoading: false });
@@ -36,6 +39,7 @@ export const useAuthStore = create(
           const { data } = await api.post('/auth/register', { name, email, password, phone });
           localStorage.setItem('token', data.token);
           set({ user: data.user, token: data.token, isLoading: false });
+          identifyUser(data.user);
           return data;
         } catch (err) {
           set({ isLoading: false });
