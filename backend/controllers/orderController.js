@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const Razorpay = require('razorpay');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const shiprocket = require('../services/shiprocket');
 
 exports.createOrder = async (req, res) => {
   const { orderItems, shippingAddress, paymentMethod } = req.body;
@@ -140,6 +141,8 @@ exports.getAllOrders = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
   const order = await Order.findById(req.params.id);
   if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+  const prevStatus = order.orderStatus;
   order.orderStatus = req.body.status;
   if (req.body.trackingNumber) order.trackingNumber = req.body.trackingNumber;
   if (req.body.status === 'delivered') {
@@ -147,7 +150,65 @@ exports.updateOrderStatus = async (req, res) => {
     order.deliveredAt = Date.now();
   }
   await order.save();
+
+  // Auto-create Shiprocket shipment when moving to processing
+  if (
+    req.body.status === 'processing' &&
+    prevStatus !== 'processing' &&
+    !order.shiprocketOrderId &&
+    process.env.SHIPROCKET_EMAIL &&
+    process.env.SHIPROCKET_PASSWORD
+  ) {
+    try {
+      const srData = await shiprocket.createShiprocketOrder(order);
+      if (srData.order_id) {
+        order.shiprocketOrderId = String(srData.order_id);
+        if (srData.shipment_id) {
+          order.shiprocketShipmentId = String(srData.shipment_id);
+          // Auto-assign AWB
+          try {
+            const awbData = await shiprocket.generateAWB(srData.shipment_id);
+            const awb = awbData?.response?.data?.awb_code;
+            const courier = awbData?.response?.data?.courier_name;
+            if (awb) {
+              order.awbCode = awb;
+              order.trackingNumber = awb;
+            }
+            if (courier) order.courierName = courier;
+            // Request pickup
+            await shiprocket.requestPickup(srData.shipment_id);
+          } catch (awbErr) {
+            console.error('Shiprocket AWB error:', awbErr.message);
+          }
+        }
+        await order.save();
+      }
+    } catch (srErr) {
+      console.error('Shiprocket order creation error:', srErr.response?.data || srErr.message);
+    }
+  }
+
   res.json({ success: true, order });
+};
+
+exports.trackOrder = async (req, res) => {
+  const order = await Order.findById(req.params.id);
+  if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+  if (order.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    return res.status(403).json({ success: false, message: 'Not authorized' });
+  }
+
+  if (!order.awbCode) {
+    return res.json({ success: true, tracking: null, message: 'Shipment not yet dispatched' });
+  }
+
+  try {
+    const trackData = await shiprocket.trackShipment(order.awbCode);
+    res.json({ success: true, tracking: trackData, awbCode: order.awbCode, courierName: order.courierName });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Tracking unavailable', error: err.message });
+  }
 };
 
 exports.createRazorpayOrder = async (req, res) => {

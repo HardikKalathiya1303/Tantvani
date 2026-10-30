@@ -4,7 +4,7 @@ const { protect, adminOnly } = require('../middleware/auth');
 const {
   createOrder, getMyOrders, getOrder, updateOrderToPaid,
   getAllOrders, updateOrderStatus, getDashboardStats,
-  createRazorpayOrder, verifyAndCreateOrder, cancelOrder,
+  createRazorpayOrder, verifyAndCreateOrder, cancelOrder, trackOrder,
 } = require('../controllers/orderController');
 
 router.post('/', protect, createOrder);
@@ -13,6 +13,7 @@ router.post('/verify-payment', protect, verifyAndCreateOrder);
 router.get('/my-orders', protect, getMyOrders);
 router.get('/admin/all', protect, adminOnly, getAllOrders);
 router.get('/admin/stats', protect, adminOnly, getDashboardStats);
+router.get('/:id/track', protect, trackOrder);
 router.get('/:id', protect, getOrder);
 router.put('/:id/cancel', protect, cancelOrder);
 router.put('/:id/pay', protect, updateOrderToPaid);

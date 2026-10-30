@@ -46,6 +46,10 @@ const orderSchema = new mongoose.Schema({
   isDelivered: { type: Boolean, default: false },
   deliveredAt: Date,
   trackingNumber: String,
+  shiprocketOrderId: String,
+  shiprocketShipmentId: String,
+  awbCode: String,
+  courierName: String,
   cancelledAt: Date,
   cancellationReason: String,
   refundStatus: {
