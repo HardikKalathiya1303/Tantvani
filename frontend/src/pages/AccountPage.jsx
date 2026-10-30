@@ -305,6 +305,23 @@ export default function AccountPage() {
                             </p>
                           </div>
 
+                          {/* Track Order button for shipped/processing orders */}
+                          {['processing', 'shipped', 'delivered'].includes(order.orderStatus) && (
+                            <div className="mt-3 pt-3 border-t border-neutral-100">
+                              <Link
+                                to={`/orders/${order._id}/track`}
+                                className="inline-flex items-center gap-2 font-jost text-xs font-bold tracking-widest uppercase px-4 py-2 rounded-full bg-wine text-cream-light hover:bg-wine-dark transition-colors"
+                              >
+                                <Package className="w-3.5 h-3.5" />
+                                Track Order
+                                {order.awbCode && <span className="font-mono font-normal opacity-70">· {order.awbCode}</span>}
+                              </Link>
+                              {order.courierName && (
+                                <span className="ml-3 font-karla text-xs text-neutral-500">{order.courierName}</span>
+                              )}
+                            </div>
+                          )}
+
                           {/* Cancellation Banner & Actions */}
                           {order.orderStatus === 'cancelled' ? (
                             <div className="mt-4 pt-3 border-t border-neutral-100 bg-red-50/60 border border-red-100 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">

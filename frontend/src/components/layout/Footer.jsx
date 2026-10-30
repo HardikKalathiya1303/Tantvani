@@ -43,7 +43,7 @@ export default function Footer() {
           <div>
             <h4 className="font-jost text-xs tracking-[0.3em] uppercase text-cream-light mb-6">Quick Links</h4>
             <ul className="space-y-3">
-              {[['About Us', '/about'], ['Our Story', '/about#story'], ['Artisans', '/about#artisans'], ['Shipping Policy', '/shipping'], ['Return Policy', '/returns'], ['Contact', '/contact']].map(([label, href]) => (
+              {[['About Us', '/about'], ['Our Story', '/about#story'], ['Shipping Policy', '/shipping'], ['Return Policy', '/returns'], ['Contact Us', '/contact'], ['Track Order', '/account']].map(([label, href]) => (
                 <li key={href}>
                   <Link to={href} className="font-karla text-sm text-cream-light/50 hover:text-cream-light transition-colors">{label}</Link>
                 </li>
@@ -75,10 +75,10 @@ export default function Footer() {
       {/* Bottom */}
       <div className="border-t border-cream-light/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="font-karla text-xs text-cream-light/30">© 2024 Tantvani. All rights reserved.</p>
+          <p className="font-karla text-xs text-cream-light/30">© 2026 DhagaRatan. All rights reserved.</p>
           <div className="flex gap-6">
-            {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map(item => (
-              <a key={item} href="#" className="font-karla text-xs text-cream-light/30 hover:text-cream-light/60 transition-colors">{item}</a>
+            {[['Privacy Policy', '/privacy'], ['Terms of Service', '/terms'], ['Contact', '/contact']].map(([label, href]) => (
+              <Link key={label} to={href} className="font-karla text-xs text-cream-light/30 hover:text-cream-light/60 transition-colors">{label}</Link>
             ))}
           </div>
         </div>
