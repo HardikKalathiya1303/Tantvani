@@ -21,6 +21,12 @@ const AboutPage = lazy(() => import('./pages/AboutPage'));
 const WishlistPage = lazy(() => import('./pages/WishlistPage'));
 const LoginPage = lazy(() => import('./pages/AuthPages').then(m => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import('./pages/AuthPages').then(m => ({ default: m.RegisterPage })));
+const TrackOrderPage = lazy(() => import('./pages/TrackOrderPage'));
+const ShippingPage = lazy(() => import('./pages/ShippingPage'));
+const ReturnsPage = lazy(() => import('./pages/ReturnsPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
 
 function PageLoader() {
   return (
@@ -96,6 +102,12 @@ export default function App() {
             <Route path="/account/orders" element={<ProtectedRoute><PageTransition><AccountPage /></PageTransition></ProtectedRoute>} />
             <Route path="/wishlist" element={<ProtectedRoute><PageTransition><WishlistPage /></PageTransition></ProtectedRoute>} />
             <Route path="/about" element={<PageTransition><AboutPage /></PageTransition>} />
+            <Route path="/shipping" element={<PageTransition><ShippingPage /></PageTransition>} />
+            <Route path="/returns" element={<PageTransition><ReturnsPage /></PageTransition>} />
+            <Route path="/contact" element={<PageTransition><ContactPage /></PageTransition>} />
+            <Route path="/privacy" element={<PageTransition><PrivacyPolicyPage /></PageTransition>} />
+            <Route path="/terms" element={<PageTransition><TermsPage /></PageTransition>} />
+            <Route path="/orders/:id/track" element={<ProtectedRoute><PageTransition><TrackOrderPage /></PageTransition></ProtectedRoute>} />
             <Route path="*" element={
               <PageTransition>
                 <div className="pb-24 min-h-screen flex items-center justify-center bg-cream">
